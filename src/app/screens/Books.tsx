@@ -170,8 +170,9 @@ export function Books() {
         />
       )}
       topBar={(
+        //  The prototype bar goes UNDER Books' bar: both sit at z-100, and the
+        //  later one wins, so above it the version menu opened behind the bar.
         <Stack gap={0} className="flex-none">
-        <PrototypeBar />
         <TopBar
           leading={[{
             id: 'recent', label: 'Recent activity', icon: HISTORY_MARK, onSelect: () => {},
@@ -192,6 +193,7 @@ export function Books() {
           account={{ name: 'Jenner Dopeson', initials: 'JD', onOpen: () => {} }}
           apps={{ onOpen: () => {} }}
         />
+        <PrototypeBar />
         </Stack>
       )}
     >
