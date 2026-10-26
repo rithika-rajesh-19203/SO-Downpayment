@@ -7,6 +7,9 @@ import tailwindcss from '@tailwindcss/vite';
 const root = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  //  Relative, so the built prototype opens from any path — a GitHub Pages
+  //  subfolder or a hosted page — not only from a domain root.
+  base: './',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
