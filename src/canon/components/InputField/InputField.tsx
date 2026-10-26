@@ -1,5 +1,7 @@
+import { useRef, useState } from 'react';
 import type { InputHTMLAttributes } from 'react';
 import { Icon } from '../../icons';
+import { Menu } from '../Menu/Menu';
 import type { IconName } from '../../icons';
 import { cn } from '../../utils/cn';
 
@@ -130,11 +132,29 @@ export interface InputFieldProps extends Omit<InputHTMLAttributes<HTMLInputEleme
   /** §3.3 — a real icon instance, 16 × 16, inheriting the theme. Off by default. */
   icon?: IconName;
   iconRight?: IconName;
+  /**
+   * A unit the value is IN, chosen from a short list — `%` or `Rs.` on a
+   * discount or an advance. Rendered as a joined segment at the trailing edge
+   * that opens a `Menu`, so the number and what it means sit in one control
+   * and one tab sequence rather than a field and a stray select beside it.
+   *
+   * The segment is a sibling of the `<input>`, not inside it: the value the
+   * caller receives stays a bare number, and the unit is its own state.
+   */
+  unit?: {
+    value: string;
+    options: { value: string; label: string }[];
+    onChange: (next: string) => void;
+    /** Names the trigger: "Advance unit". The visible text is only "%". */
+    label: string;
+  };
 }
 
 export function InputField({
-  error, icon, iconRight, disabled, format = 'text', onChange, className, ...rest
+  error, icon, iconRight, unit, disabled, format = 'text', onChange, className, ...rest
 }: InputFieldProps) {
+  const unitRef = useRef<HTMLButtonElement>(null);
+  const [unitOpen, setUnitOpen] = useState(false);
   //  §5: `Disabled + error` does not exist in either component, "and that is
   //  defensible — a control the user cannot edit cannot be corrected".
   const invalid = Boolean(error) && !disabled;
@@ -143,7 +163,10 @@ export function InputField({
     <span
       className={cn(
         //  §4.1 / §7: height 34, padding and gap both space/5, radius md.
-        'inline-flex items-center gap-5 h-control px-5 w-full',
+        //  With a unit the segment IS the trailing edge, so the padding there
+        //  goes — otherwise its fill stops 10 short of the border and corner.
+        'inline-flex items-center gap-5 h-control w-full',
+        unit ? 'ps-5 pe-0' : 'px-5',
         'rounded-md border bg-surface-default transition-colors',
         //  §6: the ring is an outline, not a child rectangle — "an outline needs
         //  no node, never affects layout, and follows the box at any size".
@@ -218,6 +241,42 @@ export function InputField({
         {...rest}
       />
       {iconRight ? <Icon name={iconRight} size="md" tone={disabled ? 'disabled' : 'subtle'} /> : null}
+      {unit ? (
+        <>
+          <button
+            ref={unitRef}
+            type="button"
+            disabled={disabled}
+            aria-label={`${unit.label}: ${unit.options.find((o) => o.value === unit.value)?.label ?? unit.value}`}
+            aria-haspopup="menu"
+            aria-expanded={unitOpen}
+            onClick={() => setUnitOpen((o) => !o)}
+            className={cn(
+              'flex-none self-stretch inline-flex items-center gap-2 px-4',
+              'rounded-e-md border-s border-border-default bg-surface-sunken',
+              'text-body text-text-default hover:bg-surface-hover',
+              'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring',
+              'disabled:text-text-disabled disabled:cursor-not-allowed',
+            )}
+          >
+            {unit.options.find((o) => o.value === unit.value)?.label ?? unit.value}
+            <Icon name="caret-down" size="xs" tone="inherit" />
+          </button>
+          <Menu
+            anchor={unitRef.current}
+            open={unitOpen}
+            onClose={() => setUnitOpen(false)}
+            label={unit.label}
+            emphasis="strong"
+            entries={unit.options.map((o) => ({
+              id: o.value,
+              label: o.label,
+              checked: o.value === unit.value,
+              onSelect: () => { unit.onChange(o.value); setUnitOpen(false); },
+            }))}
+          />
+        </>
+      ) : null}
     </span>
   );
 }

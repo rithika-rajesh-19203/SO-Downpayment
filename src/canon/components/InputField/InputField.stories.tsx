@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { InputField } from './InputField';
 import { Stack, Text } from '../../primitives';
@@ -95,6 +96,41 @@ export const RestingBorder: Story = {
         <Text size="caption" tone="tertiary">border/strong — neutral/800, 1.71:1 ✗ the darkest role there was</Text>
         <InputField placeholder="Search orders" className="border-border-strong" />
       </Stack>
+    </Stack>
+  ),
+};
+
+/**
+ * WITH A UNIT — the value and what it is measured in, as one control. The
+ * segment opens a `Menu`; the input still hands back a bare number.
+ */
+function UnitDemo({ error, disabled }: { error?: boolean; disabled?: boolean }) {
+  const [value, setValue] = useState('25');
+  const [unit, setUnit] = useState('percent');
+  return (
+    <InputField
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      format="decimal"
+      error={error}
+      disabled={disabled}
+      unit={{
+        value: unit, onChange: setUnit, label: 'Advance unit',
+        options: [{ value: 'percent', label: '%' }, { value: 'amount', label: 'Rs.' }],
+      }}
+    />
+  );
+}
+
+export const WithUnit: Story = {
+  render: () => (
+    <Stack gap={5} className="max-w-rail">
+      {([['default', {}], ['error', { error: true }], ['disabled', { disabled: true }]] as const).map(([name, p]) => (
+        <Stack key={name} gap={2}>
+          <Text size="caption" tone="tertiary">{name}</Text>
+          <UnitDemo {...p} />
+        </Stack>
+      ))}
     </Stack>
   ),
 };

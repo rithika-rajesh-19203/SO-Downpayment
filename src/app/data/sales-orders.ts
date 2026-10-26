@@ -59,6 +59,23 @@ export interface OrderLine {
   item: string;
   qty: number;
   rate: number;
+  /** Line-level discount: a percentage of qty × rate, or a flat amount off it. */
+  discount?: number;
+  discountType?: 'percent' | 'amount';
+}
+
+/**
+ * What a line comes to: qty × rate, less its discount. ONE function, because
+ * the creation page, the details page, the PDF and the portal all show this
+ * number, and four copies of the rule is three chances for them to disagree.
+ * Never below zero — a discount larger than the line is a typo, not a refund.
+ */
+export function lineAmount(l: OrderLine) {
+  const gross = l.qty * l.rate;
+  const off = !l.discount ? 0
+    : l.discountType === 'amount' ? l.discount
+      : (gross * l.discount) / 100;
+  return Math.max(0, Math.round((gross - off) * 100) / 100);
 }
 
 export interface SalesOrder {
@@ -189,3 +206,60 @@ export const SALES_ORDERS: SalesOrder[] = [
     payments: [], invoices: [],
   },
 ];
+
+/** The business issuing the order — the PDF's letterhead. */
+export const ORGANISATION = {
+  name: 'The Retail Store Inc',
+  address: ['Coimbatore Tamil Nadu 641027', 'India'],
+  gstin: '33SXWAI6641W6Z3',
+};
+
+export interface CustomerInfo {
+  billing: string[];
+  shipping: string[];
+  gstin?: string;
+  placeOfSupply: string;
+}
+
+/** Stand-in until a customers API exists. Keyed by `SalesOrder.customer`. */
+export const CUSTOMER_INFO: Record<string, CustomerInfo> = {
+  'Mr. Jeh Faran': {
+    billing: ['ABC Building,', 'Sample test street', 'Madurai', 'Tamil Nadu', 'India', '625001'],
+    shipping: [],
+    gstin: '33ESDRUI1234231',
+    placeOfSupply: 'Tamil Nadu (33)',
+  },
+  'Mr. John': {
+    billing: ['12 Lake View Road', 'Coimbatore', 'Tamil Nadu', 'India', '641002'],
+    shipping: ['Warehouse 2, Avinashi Road', 'Coimbatore', 'Tamil Nadu', 'India', '641014'],
+    placeOfSupply: 'Tamil Nadu (33)',
+  },
+  'Branch 1 (The Retail Store Inc)': {
+    billing: ['Branch 1, Gandhipuram', 'Coimbatore', 'Tamil Nadu', 'India', '641012'],
+    shipping: [],
+    gstin: '33SXWAI6641W6Z3',
+    placeOfSupply: 'Tamil Nadu (33)',
+  },
+  'Meridian Textiles': {
+    billing: ['22 Avinashi Road', 'Coimbatore', 'Tamil Nadu', 'India', '641018'],
+    shipping: ['Unit 7, Tirupur Export Zone', 'Tirupur', 'Tamil Nadu', 'India', '641604'],
+    gstin: '33AACCM4521K1Z8',
+    placeOfSupply: 'Tamil Nadu (33)',
+  },
+};
+
+/**
+ * Adds a payment to an order's advance. ONE function, used by Books' Record
+ * Advance Payment and by the customer paying from the portal, so both apply the
+ * same rule: the advance arriving in full is what confirms an order that was
+ * waiting on it — NetSuite releases its hold on the same condition.
+ */
+export function applyAdvancePayment(o: SalesOrder, p: AdvancePayment): SalesOrder {
+  const payments = [...o.payments, p];
+  const paid = payments.reduce((s, x) => s + x.amount, 0);
+  return {
+    ...o,
+    payments,
+    status: o.status === 'Awaiting Advance' && paid >= (o.advance?.amount ?? 0) ? 'Confirmed' : o.status,
+  };
+}

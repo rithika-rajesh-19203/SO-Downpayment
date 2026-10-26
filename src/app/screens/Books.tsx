@@ -13,6 +13,8 @@ import { NewSalesAgreement } from './NewSalesAgreement';
 import { PurchaseOrders } from './PurchaseOrders';
 import { NewSalesOrder } from './NewSalesOrder';
 import { SalesOrderDetails } from './SalesOrderDetails';
+import { CustomerPortal } from './CustomerPortal';
+import { PrototypeBar } from './PrototypeBar';
 import { SALES_ORDERS } from '../data/sales-orders';
 import type { SalesOrder } from '../data/sales-orders';
 
@@ -57,6 +59,10 @@ export function Books() {
   //  see the same list.
   const [orders, setOrders] = useState<SalesOrder[]>(SALES_ORDERS);
   const [orderId, setOrderId] = useState<string>(SALES_ORDERS[0].id);
+  //  The order the customer portal was opened on, or null when in Books. The
+  //  portal replaces the whole shell — it is another product, not a page of
+  //  this one.
+  const [portalId, setPortalId] = useState<string | null>(null);
 
   //  The nav's `+` is registered once — see data/books.tsx for why it is a
   //  dispatcher rather than a prop. In an EFFECT, not in render: registering a
@@ -89,6 +95,7 @@ export function Books() {
   //  `purchase-agreements` has ONLY a creation page — there is no list view for
   //  it yet, so the nav leaf lands straight on the form. Stated rather than
   //  disguised: the list is the missing half, not a decision.
+  const changeOrder = (o: SalesOrder) => setOrders((all) => all.map((x) => (x.id === o.id ? o : x)));
   const nextNumber = `SO-${String(74 + orders.length - SALES_ORDERS.length).padStart(5, '0')}`;
 
   const screen = currentId === 'sales-orders' && creating ? (
@@ -103,9 +110,10 @@ export function Books() {
         orders={orders}
         orderId={orderId}
         onSelect={setOrderId}
-        onChange={(o) => setOrders((all) => all.map((x) => (x.id === o.id ? o : x)))}
+        onChange={changeOrder}
         onCreate={() => setCreating(true)}
         onBack={() => {}}
+        onOpenPortal={setPortalId}
       />
     )
     : currentId === 'purchase-agreements' ? (
@@ -132,6 +140,22 @@ export function Books() {
           ? <Invoices onOpen={setInvoiceId} onCreate={() => setCreating(true)} />
           : null;
 
+  const portalOrder = orders.find((o) => o.id === portalId);
+  if (portalOrder) {
+    const paid = orders.reduce((n, o) => n + o.payments.length, 0);
+    return (
+      <CustomerPortal
+        orders={orders}
+        customer={portalOrder.customer}
+        orderId={portalOrder.id}
+        nextAdvance={`ADV-${String(15 + paid).padStart(5, '0')}`}
+        onChange={changeOrder}
+        //  Back on the same order, so the payment just made is right there.
+        onExit={() => { setOrderId(portalOrder.id); setPortalId(null); }}
+      />
+    );
+  }
+
   return (
     <AppShell
       nav={(
@@ -146,6 +170,8 @@ export function Books() {
         />
       )}
       topBar={(
+        <Stack gap={0} className="flex-none">
+        <PrototypeBar />
         <TopBar
           leading={[{
             id: 'recent', label: 'Recent activity', icon: HISTORY_MARK, onSelect: () => {},
@@ -166,6 +192,7 @@ export function Books() {
           account={{ name: 'Jenner Dopeson', initials: 'JD', onOpen: () => {} }}
           apps={{ onOpen: () => {} }}
         />
+        </Stack>
       )}
     >
       {/* Inside <main>, and scrolling with the body — §7: "if it is about the

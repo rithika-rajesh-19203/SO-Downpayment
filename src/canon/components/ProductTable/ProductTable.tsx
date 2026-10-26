@@ -505,6 +505,17 @@ export function ProductTable({
                               />
                             ) : c.kind === 'read-only' ? (
                               <span className={cn('text-body', c.muted && 'text-text-secondary font-regular')}>{v}</span>
+                            ) : c.unit ? (
+                              <UnitCell
+                                column={c}
+                                value={v}
+                                unit={row.values?.[`${c.id}:unit`] || c.unit.default}
+                                label={`${c.label}, row ${numbers[i]}`}
+                                inputClass={cn(cellText, 'placeholder:text-text-placeholder')}
+                                onChange={(patch) => onRowsChange(rows.map((r) => (
+                                  r.id === row.id ? { ...r, values: { ...r.values, ...patch } } : r
+                                )))}
+                              />
                             ) : (
                               <input
                                 value={v}
@@ -773,3 +784,69 @@ const LANE = cn(
   'focus-visible:opacity-100',
   'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus-ring',
 );
+
+/**
+ * A typed cell with its unit — the value, and a joined `% ▾` segment that opens
+ * a `Menu` of units. The input is the same bare, full-bleed cell input every
+ * other typed column uses, filtered by the same `applyFormat`; only the segment
+ * is new. The segment is a small bordered chip rather than a full-height one,
+ * because the cell has no frame of its own for it to join.
+ */
+function UnitCell({ column, value, unit, label, inputClass, onChange }: {
+  column: ProductColumn;
+  value: string;
+  unit: string;
+  label: string;
+  inputClass: string;
+  onChange: (patch: Record<string, string>) => void;
+}) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const options = column.unit?.options ?? [];
+  const current = options.find((o) => o.value === unit)?.label ?? unit;
+
+  return (
+    <div className="flex items-center h-full min-w-0 gap-2">
+      <input
+        value={value}
+        inputMode={column.format === 'decimal' ? 'decimal' : column.format === 'numeric' ? 'numeric' : undefined}
+        onChange={(e) => onChange({
+          [column.id]: column.format ? applyFormat(e.target.value, column.format) : e.target.value,
+        })}
+        placeholder={column.placeholder}
+        aria-label={label}
+        className={inputClass}
+      />
+      <button
+        ref={ref}
+        type="button"
+        aria-label={`${label} unit: ${current}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className={cn(
+          'flex-none inline-flex items-center gap-1 h-button-sm px-3 rounded-sm',
+          'border border-border-default bg-surface-sunken text-body-sm text-text-default',
+          'hover:bg-surface-hover',
+          'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring',
+        )}
+      >
+        {current}
+        <Icon name="caret-down" size="xs" tone="inherit" />
+      </button>
+      <Menu
+        anchor={ref.current}
+        open={open}
+        onClose={() => setOpen(false)}
+        label={`${column.label} unit`}
+        emphasis="strong"
+        entries={options.map((o) => ({
+          id: o.value,
+          label: o.label,
+          checked: o.value === unit,
+          onSelect: () => { onChange({ [`${column.id}:unit`]: o.value }); setOpen(false); },
+        }))}
+      />
+    </div>
+  );
+}

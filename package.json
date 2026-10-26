@@ -2,7 +2,7 @@
   "name": "zf-design-cannon",
   "private": true,
   "version": "0.1.0",
-  "description": "ZF Design Cannon \u2014 the canonical design system, and the application built from it.",
+  "description": "ZF Design Cannon — the canonical design system, and the application built from it.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,7 +14,9 @@
     "canon:docs": "node scripts/gen-catalog.mjs",
     "tokens:sync": "node scripts/gen-tokens.mjs",
     "canon:build": "storybook build -o canon-static",
-    "icons:sync": "node scripts/gen-icons.mjs"
+    "icons:sync": "node scripts/gen-icons.mjs",
+    "record": "node scripts/record-version.mjs",
+    "build:versions": "node scripts/build-versions.mjs"
   },
   "dependencies": {
     "react": "^19.2.0",

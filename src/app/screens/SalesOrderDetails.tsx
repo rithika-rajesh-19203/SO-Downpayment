@@ -1,40 +1,38 @@
 import { useMemo, useRef, useState } from 'react';
 import {
-  Avatar, Banner, Button, DescriptionList, DetailsToolbar, Divider, FormRow, Icon, Inline,
+  Avatar, Banner, Button, DescriptionList, DetailsToolbar, FormRow, Icon, Inline,
   InputField, Menu, MiniList, Modal, PageHeader, Select, SplitView, StatusBadge, Stack,
-  Surface, Table, Tabs, Text,
+  Segmented, Surface, Table, Tabs, Text,
 } from '@canon';
 import type {
   DetailsToolbarGroup, MenuEntry, MiniListItem, StatusBadgeStatus, TableColumn,
 } from '@canon';
 import {
-  COLLECT_BEFORE, DEPOSIT_ACCOUNTS, PAYMENT_MODES, advanceDue, received,
+  DEPOSIT_ACCOUNTS, PAYMENT_MODES, advanceDue, applyAdvancePayment, received,
 } from '../data/sales-orders';
-import type { AdvancePayment, OrderInvoice, OrderLine, SalesOrder } from '../data/sales-orders';
+import type { AdvancePayment, OrderInvoice, SalesOrder } from '../data/sales-orders';
+import {
+  Address, LINE_COLUMNS, OrderPdf, OrderTotals, STATUS_TONE, customerOf, date, day, lines, money, round, termsLabel,
+} from './SalesOrderDocument';
+import type { Line } from './SalesOrderDocument';
 
 /**
  * SALES → SALES ORDERS → one order. The split view, composed exactly as
  * `InvoiceDetails` is — mini list, detail header, toolbar, then the record's
  * own sections.
  *
- * Three sections, top to bottom:
+ * Top to bottom:
  *
  * 1. **What's next** — the one step this order is waiting on, with the button
  *    that takes it. It is derived from the order's state on every render rather
  *    than stored, so it cannot say "record the advance" about an order whose
  *    advance has already arrived.
- * 2. **The summary** — who, how much, which state.
- * 3. **Related records**, tabbed: `Invoices` and `SO Advance`. The advance tab
- *    is a sibling of the invoices tab because it is the same kind of thing — a
- *    list of documents raised against this order — and not a view of the order.
+ * 2. **Related records**, tabbed: `SO Advance`, and `Invoices` once one has
+ *    been raised — an empty tab is a destination with nothing at it. They are
+ *    siblings because they are the same kind of thing: documents raised against
+ *    this order, not views of it.
+ * 3. **The order itself** — its fields and lines.
  */
-
-const STATUS_TONE: Record<SalesOrder['status'], StatusBadgeStatus> = {
-  Draft: 'draft',
-  'Awaiting Advance': 'pending',
-  Confirmed: 'approved',
-  Invoiced: 'success',
-};
 
 const PAYMENT_TONE: Record<AdvancePayment['status'], StatusBadgeStatus> = {
   Received: 'success',
@@ -47,39 +45,29 @@ const INVOICE_TONE: Record<OrderInvoice['status'], StatusBadgeStatus> = {
   Paid: 'success',
 };
 
-const money = new Intl.NumberFormat('en-IN', {
-  style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2,
-});
-const day = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-const date = (iso: string) => day.format(new Date(iso));
-const round = (n: number) => Math.round(n * 100) / 100;
-
-const TOOLBAR: DetailsToolbarGroup[] = [
+/**
+ * The bar. **Customer Portal** is a prototyping affordance — it opens the
+ * portal as this order's customer, so the advance can be paid from their side
+ * and the result read back here.
+ */
+const toolbar = (onPortal: () => void): DetailsToolbarGroup[] => [
   {
     id: 'document', label: 'Document actions',
     items: [
       { id: 'edit', label: 'Edit', icon: 'edit', onSelect: () => {} },
       { id: 'send', label: 'Send Email', icon: 'mail', onSelect: () => {} },
       { id: 'pdf', label: 'PDF/Print', icon: 'pdf', menu: true, onSelect: () => {} },
+      { id: 'portal', label: 'Customer Portal', icon: 'share', onSelect: onPortal },
     ],
   },
 ];
-
-/** How the advance was asked for, in words: "25% before confirming the order". */
-function termsLabel(o: SalesOrder) {
-  if (!o.advance) return 'Not requested';
-  const what = o.advance.type === 'percent'
-    ? `${o.advance.value}% (${money.format(o.advance.amount)})`
-    : money.format(o.advance.amount);
-  return `${what} before ${COLLECT_BEFORE[o.advance.collectBefore].toLowerCase()}`;
-}
 
 type Step = {
   message: string;
   primary?: { label: string; icon?: 'plus' | 'share' | 'documents' | 'check'; action: Action };
   secondary?: { label: string; icon?: 'plus' | 'share' | 'documents' | 'check'; action: Action };
 };
-type Action = 'record' | 'invoice' | 'send' | 'link' | 'none';
+type Action = 'record' | 'invoice' | 'send' | 'none';
 
 /**
  * THE ORDER'S NEXT STEP. One function, so every state an order can be in has
@@ -110,9 +98,8 @@ function nextStep(o: SalesOrder): Step {
     return {
       message: got > 0
         ? `${money.format(got)} of the ${money.format(o.advance.amount)} advance is received. Record the remaining ${money.format(due)} to confirm this order.`
-        : `This order needs an advance of ${money.format(o.advance.amount)} before ${COLLECT_BEFORE[o.advance.collectBefore].toLowerCase()}. Record the payment once the customer pays, or send them a payment link.`,
+        : `This order needs an advance of ${money.format(o.advance.amount)} before it is confirmed. Record the payment once the customer pays.`,
       primary: { label: 'Record Advance Payment', icon: 'plus', action: 'record' },
-      secondary: { label: 'Share Payment Link', icon: 'share', action: 'link' },
     };
   }
   if (o.advance) {
@@ -135,9 +122,13 @@ export interface SalesOrderDetailsProps {
   onChange: (order: SalesOrder) => void;
   onCreate: () => void;
   onBack: () => void;
+  /** Open the customer portal on this order — the prototype's bridge. */
+  onOpenPortal: (orderId: string) => void;
 }
 
-export function SalesOrderDetails({ orders, orderId, onSelect, onChange, onCreate, onBack }: SalesOrderDetailsProps) {
+export function SalesOrderDetails({
+  orders, orderId, onSelect, onChange, onCreate, onBack, onOpenPortal,
+}: SalesOrderDetailsProps) {
   const items: MiniListItem[] = useMemo(() => orders.map((o) => ({
     id: o.id,
     name: o.customer,
@@ -179,6 +170,7 @@ export function SalesOrderDetails({ orders, orderId, onSelect, onChange, onCreat
         nextInvoice={`INV-${String(138 + invoiceCount).padStart(6, '0')}`}
         onChange={onChange}
         onBack={onBack}
+        onOpenPortal={() => onOpenPortal(order.id)}
       />
     </SplitView>
   );
@@ -190,12 +182,17 @@ interface OrderRecordProps {
   nextInvoice: string;
   onChange: (order: SalesOrder) => void;
   onBack: () => void;
+  onOpenPortal: () => void;
 }
 
-function OrderRecord({ order, nextAdvance, nextInvoice, onChange, onBack }: OrderRecordProps) {
+function OrderRecord({ order, nextAdvance, nextInvoice, onChange, onBack, onOpenPortal }: OrderRecordProps) {
   const moreRef = useRef<HTMLButtonElement>(null);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [tab, setTab] = useState(order.advance || order.payments.length ? 'advance' : 'invoices');
+  const [picked, setPicked] = useState(order.invoices.length && !order.advance ? 'invoices' : 'advance');
+  //  The Invoices tab exists only once there is an invoice, so a remembered
+  //  'invoices' falls back to the one tab that is always there.
+  const tab = picked === 'invoices' && !order.invoices.length ? 'advance' : picked;
+  const setTab = setPicked;
   const [recording, setRecording] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -230,20 +227,11 @@ function OrderRecord({ order, nextAdvance, nextInvoice, onChange, onBack }: Orde
     else if (a === 'invoice') convert();
     else if (a === 'send') {
       onChange({ ...order, status: order.advance && due > 0 ? 'Awaiting Advance' : 'Confirmed' });
-    } else if (a === 'link') setNotice(`Payment link for ${money.format(due)} copied to the clipboard.`);
+    }
   };
 
   const record = (p: AdvancePayment) => {
-    const payments = [...order.payments, p];
-    const paid = payments.reduce((s, x) => s + x.amount, 0);
-    onChange({
-      ...order,
-      payments,
-      //  The advance arriving in full is what confirms an order that was waiting
-      //  on it — NetSuite releases the hold on the same condition.
-      status: order.status === 'Awaiting Advance' && paid >= (order.advance?.amount ?? 0)
-        ? 'Confirmed' : order.status,
-    });
+    onChange(applyAdvancePayment(order, p));
     setRecording(false);
     setTab('advance');
     setNotice(`Advance payment ${p.number} of ${money.format(p.amount)} recorded.`);
@@ -262,7 +250,7 @@ function OrderRecord({ order, nextAdvance, nextInvoice, onChange, onBack }: Orde
     <>
       <PageHeader type="detail" title={order.number} parent={{ label: `Location: ${order.location}`, href: '#' }} onBack={onBack} />
       <DetailsToolbar
-        groups={TOOLBAR}
+        groups={toolbar(onOpenPortal)}
         overflow={{ ref: moreRef, expanded: moreOpen, onSelect: () => setMoreOpen((o) => !o) }}
       />
       <Menu
@@ -304,31 +292,13 @@ function OrderRecord({ order, nextAdvance, nextInvoice, onChange, onBack }: Orde
             </Stack>
           </Surface>
 
-          {/* ── SUMMARY ─────────────────────────────────────────────────────── */}
-          <Surface pad={10} radius="card" border="default">
-            <Inline gap={8} align="center" wrap>
-              <Avatar name={order.customer} size="md" />
-              <Stack gap={2} className="min-w-0 flex-1">
-                <Text size="heading" truncate>{order.customer}</Text>
-                <Text size="body-sm" tone="secondary">
-                  {order.advance
-                    ? `Advance ${money.format(got)} of ${money.format(order.advance.amount)} received`
-                    : 'No advance requested'}
-                </Text>
-              </Stack>
-              <Stack gap={2} align="end" className="flex-none">
-                <Text size="title" weight="semibold" className="tabular-nums">{money.format(order.total)}</Text>
-                <Text size="body-sm" tone="secondary">Order total</Text>
-              </Stack>
-              <StatusBadge status={STATUS_TONE[order.status]}>{order.status}</StatusBadge>
-            </Inline>
-          </Surface>
-
           {/* ── RELATED RECORDS ─────────────────────────────────────────────── */}
           <Surface pad={0} radius="card" border="default" className="overflow-hidden">
             <Tabs
               items={[
-                { id: 'invoices', label: 'Invoices', badge: String(order.invoices.length) },
+                ...(order.invoices.length
+                  ? [{ id: 'invoices', label: 'Invoices', badge: String(order.invoices.length) }]
+                  : []),
                 { id: 'advance', label: 'SO Advance', badge: String(order.payments.length) },
               ]}
               value={tab}
@@ -343,31 +313,10 @@ function OrderRecord({ order, nextAdvance, nextInvoice, onChange, onBack }: Orde
                     columns={INVOICE_COLUMNS}
                     rows={order.invoices}
                     rowKey={(r) => r.id}
-                    empty={(
-                      <Stack gap={4} align="center" className="p-10">
-                        <Text tone="secondary">No invoices yet.</Text>
-                        {!invoiced ? (
-                          <Button emphasis="secondary" size="sm" icon="documents" onClick={() => run('invoice')}>
-                            Convert to Invoice
-                          </Button>
-                        ) : null}
-                      </Stack>
-                    )}
                   />
                 </Stack>
               ) : (
                 <Stack gap={8} className="p-15">
-                  {order.advance ? (
-                    <Surface tone="sunken" pad={8} radius="md" border="divider">
-                      <Inline gap={10} align="start" wrap>
-                        <Figure label="Advance requested" value={money.format(order.advance.amount)}
-                          note={order.advance.type === 'percent' ? `${order.advance.value}% of the order` : 'Fixed amount'} />
-                        <Figure label="Received" value={money.format(got)} tone={got > 0 ? 'success' : 'default'} />
-                        <Figure label={invoiced ? 'Applied to invoice' : 'Balance due'}
-                          value={money.format(invoiced ? got : due)} tone={!invoiced && due > 0 ? 'warning' : 'default'} />
-                      </Inline>
-                    </Surface>
-                  ) : null}
                   <Table<AdvancePayment>
                     caption={`Advance payments for ${order.number}`}
                     placement="card"
@@ -395,31 +344,7 @@ function OrderRecord({ order, nextAdvance, nextInvoice, onChange, onBack }: Orde
           </Surface>
 
           {/* ── THE ORDER ───────────────────────────────────────────────────── */}
-          <Surface pad={10} radius="card" border="default">
-            <Stack gap={10}>
-              <Text as="h2" size="subheading">Sales Order Details</Text>
-              <DescriptionList items={[
-                { label: 'Sales Order#', value: order.number },
-                { label: 'Reference#', value: order.reference || '—' },
-                { label: 'Order Date', value: date(order.date) },
-                { label: 'Expected Shipment', value: order.shipmentDate ? date(order.shipmentDate) : '—' },
-                { label: 'Payment Terms', value: order.paymentTerms },
-                { label: 'Advance Payment', value: termsLabel(order) },
-              ]} />
-              <Table<OrderLine & { id: string }>
-                caption={`Items on ${order.number}`}
-                placement="card"
-                columns={LINE_COLUMNS}
-                rows={order.lines.map((l, i) => ({ ...l, id: String(i) }))}
-                rowKey={(r) => r.id}
-              />
-              <Divider />
-              <Inline gap={4} justify="end">
-                <Text tone="secondary">Total</Text>
-                <Text weight="semibold" className="tabular-nums">{money.format(order.total)}</Text>
-              </Inline>
-            </Stack>
-          </Surface>
+          <OrderDocument order={order} />
         </Stack>
       </Surface>
 
@@ -472,13 +397,6 @@ const ADVANCE_COLUMNS: TableColumn<AdvancePayment>[] = [
     ),
   },
   { id: 'amount', header: 'Amount', align: 'end', cell: (r) => money.format(r.amount) },
-];
-
-const LINE_COLUMNS: TableColumn<OrderLine & { id: string }>[] = [
-  { id: 'item', header: 'Item', cell: (r) => r.item },
-  { id: 'qty', header: 'Qty', align: 'end', cell: (r) => r.qty },
-  { id: 'rate', header: 'Rate', align: 'end', cell: (r) => money.format(r.rate) },
-  { id: 'amount', header: 'Amount', align: 'end', cell: (r) => money.format(r.qty * r.rate) },
 ];
 
 /* ── RECORD ADVANCE PAYMENT ────────────────────────────────────────────────── */
@@ -563,5 +481,145 @@ function RecordAdvance({ order, number, onCancel, onRecord }: RecordAdvanceProps
         </FormRow>
       </Stack>
     </Modal>
+  );
+}
+
+/* ── THE ORDER: DETAILS AND PDF ────────────────────────────────────────────── */
+
+/**
+ * The record itself, in the invoice details page's shape: tabs for WHAT to read
+ * (the order's details, its activity) and a `Segmented` in the strip's trailing
+ * slot for HOW to read it. Details and PDF are two renderings of one document,
+ * which is why the switch is not a third tab — see `InvoiceDetails`.
+ */
+function OrderDocument({ order }: { order: SalesOrder }) {
+  const [tab, setTab] = useState('details');
+  const [view, setView] = useState('details');
+
+  return (
+    <Surface pad={0} radius="card" border="default" className="overflow-hidden">
+      <Tabs
+        items={[
+          { id: 'details', label: 'Sales Order Details' },
+          { id: 'activity', label: 'Activity' },
+        ]}
+        value={tab}
+        onChange={setTab}
+        label="Sales order views"
+        trailing={(
+          <Segmented
+            label="View"
+            size="sm"
+            value={view}
+            onChange={setView}
+            options={[{ value: 'details', label: 'Details' }, { value: 'pdf', label: 'PDF' }]}
+          />
+        )}
+      >
+        {view === 'pdf' ? <OrderPdf order={order} />
+          : tab === 'details' ? <OrderFields order={order} />
+            : <OrderActivity order={order} />}
+      </Tabs>
+    </Surface>
+  );
+}
+
+function OrderFields({ order }: { order: SalesOrder }) {
+  const customer = customerOf(order);
+  const due = advanceDue(order);
+
+  return (
+    <Stack gap={16} className="p-15">
+      {/* The number and its state on one line, then the two figures that
+          matter, in the reference's "Total : … • Balance Due : …" form. */}
+      <Stack gap={4}>
+        <Inline gap={5} align="center" wrap>
+          <Text as="h2" size="title">{order.number}</Text>
+          <StatusBadge status={STATUS_TONE[order.status]} emphasis="solid">{order.status}</StatusBadge>
+        </Inline>
+        <Inline gap={4} align="center" wrap>
+          <Text tone="secondary">
+            Total : <Text as="span" weight="semibold" className="tabular-nums">{money.format(order.total)}</Text>
+          </Text>
+          {order.advance ? (
+            <>
+              <Text tone="tertiary" aria-hidden>•</Text>
+              <Text tone="secondary">
+                Advance Due : <Text as="span" weight="semibold" className="tabular-nums">{money.format(due)}</Text>
+              </Text>
+            </>
+          ) : null}
+        </Inline>
+      </Stack>
+
+      {/* Two columns of label/value pairs — two lists side by side rather than
+          one list wrapped, so each column reads top to bottom. */}
+      <Inline gap={16} align="start" wrap>
+        <DescriptionList className="flex-1 min-w-0" items={[
+          { label: 'Sales Order#', value: order.number },
+          { label: 'Order Date', value: date(order.date) },
+          { label: 'Status', value: order.status },
+          { label: 'Place of Supply', value: customer.placeOfSupply },
+        ]} />
+        <DescriptionList className="flex-1 min-w-0" items={[
+          { label: 'Reference#', value: order.reference || '—' },
+          { label: 'Expected Shipment', value: order.shipmentDate ? date(order.shipmentDate) : '—' },
+          { label: 'Payment Terms', value: order.paymentTerms },
+          { label: 'Advance Payment', value: termsLabel(order) },
+        ]} />
+      </Inline>
+
+      <Stack gap={8}>
+        <Text as="h3" size="heading">Customer Details</Text>
+        <Inline gap={16} align="start" wrap>
+          <DescriptionList className="flex-1 min-w-0" items={[
+            {
+              label: 'Name',
+              value: (
+                <Inline gap={4} align="center">
+                  <Avatar name={order.customer} size="sm" />
+                  <Text as="span" weight="medium">{order.customer}</Text>
+                </Inline>
+              ),
+            },
+            { label: 'Billing Address', value: <Address value={customer.billing} /> },
+          ]} />
+          <DescriptionList className="flex-1 min-w-0" items={[
+            { label: 'GSTIN', value: customer.gstin ?? '—' },
+            { label: 'Shipping Address', value: <Address value={customer.shipping} /> },
+          ]} />
+        </Inline>
+      </Stack>
+
+      <Stack gap={8}>
+        <Text as="h3" size="heading">Items</Text>
+        <Table<Line>
+          caption={`Items on ${order.number}`}
+          placement="card"
+          columns={LINE_COLUMNS}
+          rows={lines(order)}
+          rowKey={(r) => r.id}
+        />
+        <OrderTotals order={order} />
+      </Stack>
+    </Stack>
+  );
+}
+
+function OrderActivity({ order }: { order: SalesOrder }) {
+  const events: [string, string][] = [
+    [`Sales order ${order.number} created`, order.date],
+    ...order.payments.map((p) => [`Advance ${p.number} of ${money.format(p.amount)} received via ${p.mode}`, p.date] as [string, string]),
+    ...order.invoices.map((i) => [`Converted to invoice ${i.number}`, i.date] as [string, string]),
+  ];
+  return (
+    <Stack gap={6} className="p-15">
+      {events.map(([what, when]) => (
+        <Inline key={what} gap={5} align="center">
+          <Text as="span" className="flex-1 min-w-0">{what}</Text>
+          <Text as="span" size="body-sm" tone="secondary" className="flex-none">{date(when)}</Text>
+        </Inline>
+      ))}
+    </Stack>
   );
 }

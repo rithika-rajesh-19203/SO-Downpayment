@@ -1,31 +1,29 @@
 import { useState } from 'react';
 import {
-  Avatar, Banner, Button, Checkbox, CreatePage, FormRow, FormSection, Inline,
-  InputField, PageHeader, ProductTable, Segmented, Select, Stack, Surface, Text, Textarea,
+  Avatar, Banner, Button, Checkbox, CreatePage, Divider, FormRow, FormSection,
+  InputField, PageHeader, ProductTable, Select, Stack, Text, Textarea,
 } from '@canon';
 import type { InputFormat, ProductColumn, ProductRow } from '@canon';
-import { COLLECT_BEFORE } from '../data/sales-orders';
-import type { AdvanceTerms, AdvanceType, SalesOrder } from '../data/sales-orders';
+import { lineAmount } from '../data/sales-orders';
+import type { AdvanceTerms, AdvanceType, OrderLine, SalesOrder } from '../data/sales-orders';
 
 /**
  * SALES → SALES ORDERS → NEW.
  *
  * `ProductTable`'s host, so `reserveEndLane` — 20 / 30, not 20 / 20.
  *
- * ── THE ADVANCE SITS UNDER THE TOTALS, NOT IN THE HEADER FIELDS ───────────
- * Its amount is a function of the total, so it is placed where the total has
- * just been read. In the header block it would be asked before there were any
- * lines to take a percentage of.
+ * ── THE ADVANCE SITS UNDER THE CUSTOMER NOTES ─────────────────────────────
+ * After the items and totals, so its amount is asked for once the total it is
+ * a share of has been read. A rule above it marks it off from the notes.
  *
  * It is a `Checkbox` and not a `Toggle`: the user is choosing to ADD a term to
- * this order, which is a selection, not switching a mode the table is in (that
- * is what the tax-inclusive toggle on the sales agreement is). Unticked, the
- * fields under it unmount — they hold nothing until the box is ticked, and a
- * hidden percentage that still validated would block a save the user cannot see
- * the reason for.
+ * this order, which is a selection, not switching a mode. Unticked, the field
+ * under it unmounts — a hidden percentage that still validated would block a
+ * save the user cannot see the reason for.
  *
- * Percentage or amount is a `Segmented`: two mutually exclusive values of one
- * axis, both visible at once. NetSuite and SAP S/4HANA both offer the pair.
+ * ONE field. Percentage or amount is the unit the value is in, so it is the
+ * field's own trailing dropdown (`InputField`'s `unit`) rather than a second
+ * control beside it.
  */
 export interface NewSalesOrderProps {
   nextNumber: string;
@@ -73,6 +71,15 @@ const num = (v: string | undefined) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+/** A table row as an order line — the one shape `lineAmount` reads. */
+const toLine = (r: ProductRow): OrderLine => ({
+  item: r.values?.item ?? '',
+  qty: num(r.values?.qty),
+  rate: num(r.values?.rate),
+  discount: num(r.values?.discount),
+  discountType: r.values?.['discount:unit'] === 'amount' ? 'amount' : 'percent',
+});
+
 /** Two decimals, as money is stored — 25% of 9,983 is 2,495.75, not 2,495.7500001. */
 const round = (n: number) => Math.round(n * 100) / 100;
 
@@ -87,7 +94,7 @@ export function NewSalesOrder({ nextNumber, onCancel, onSave }: NewSalesOrderPro
     number: nextNumber, date: '26/10/2026', terms: 'Net 15',
   });
   const [items, setItems] = useState<ProductRow[]>([
-    { id: 'i1', kind: 'item', values: { item: 'Ergonomic Office Chair', qty: '4', rate: '1996' } },
+    { id: 'i1', kind: 'item', values: { item: 'Ergonomic Office Chair', qty: '4', rate: '1996', discount: '10' } },
     { id: 'i2', kind: 'item', values: { item: 'Standing Desk Frame', qty: '1', rate: '2000' } },
   ]);
   const [shipping, setShipping] = useState('');
@@ -95,14 +102,15 @@ export function NewSalesOrder({ nextNumber, onCancel, onSave }: NewSalesOrderPro
   const [advanceOn, setAdvanceOn] = useState(false);
   const [advanceType, setAdvanceType] = useState<AdvanceType>('percent');
   const [advanceValue, setAdvanceValue] = useState('');
-  const [collectBefore, setCollectBefore] = useState<AdvanceTerms['collectBefore']>('confirmation');
 
   //  Nothing is wrong until the user has tried to save. After that the errors
   //  are DERIVED on every render, so one that has been fixed disappears with the
   //  keystroke that fixed it.
   const [submitted, setSubmitted] = useState(false);
 
-  const subTotal = items.reduce((s, r) => s + num(r.values?.qty) * num(r.values?.rate), 0);
+  //  AFTER line discounts: each line's amount has its own discount taken off,
+  //  so Sub Total, Total and the advance are all on what is actually charged.
+  const subTotal = items.filter((r) => r.kind === 'item').reduce((s, r) => s + lineAmount(toLine(r)), 0);
   const total = round(subTotal + num(shipping));
   const advanceAmount = !advanceOn ? 0
     : advanceType === 'percent' ? round((total * num(advanceValue)) / 100)
@@ -111,6 +119,11 @@ export function NewSalesOrder({ nextNumber, onCancel, onSave }: NewSalesOrderPro
   const validate = () => {
     const e: Record<string, string> = {};
     if (!(values.customer ?? '').trim()) e.customer = 'Customer Name is required';
+    const over = items.findIndex((r) => {
+      const l = toLine(r);
+      return r.kind === 'item' && (l.discountType === 'percent' ? (l.discount ?? 0) > 100 : (l.discount ?? 0) > l.qty * l.rate);
+    });
+    if (over >= 0) e.discount = `The discount on row ${over + 1} is more than the line itself`;
     if (advanceOn) {
       const v = num(advanceValue);
       if (!advanceValue.trim()) e.advance = 'Enter the advance to collect';
@@ -142,7 +155,7 @@ export function NewSalesOrder({ nextNumber, onCancel, onSave }: NewSalesOrderPro
     if (first) { document.getElementById(first)?.focus(); return; }
 
     const advance: AdvanceTerms | undefined = advanceOn
-      ? { type: advanceType, value: num(advanceValue), amount: advanceAmount, collectBefore }
+      ? { type: advanceType, value: num(advanceValue), amount: advanceAmount, collectBefore: 'confirmation' }
       : undefined;
     onSave({
       id: `so-${Date.now()}`,
@@ -158,7 +171,7 @@ export function NewSalesOrder({ nextNumber, onCancel, onSave }: NewSalesOrderPro
       status: !send ? 'Draft' : advance ? 'Awaiting Advance' : 'Confirmed',
       lines: items
         .filter((r) => r.kind === 'item' && r.values?.item)
-        .map((r) => ({ item: r.values!.item, qty: num(r.values?.qty), rate: num(r.values?.rate) })),
+        .map(toLine),
       shipping: num(shipping),
       total,
       advance,
@@ -188,12 +201,16 @@ export function NewSalesOrder({ nextNumber, onCancel, onSave }: NewSalesOrderPro
     { id: 'item', label: 'Item Details', kind: 'select', width: 320, min: 180, options: ITEMS, placeholder: 'Type or click to select an item' },
     { id: 'qty', label: 'Quantity', kind: 'input', width: 110, min: 80, format: 'numeric', placeholder: '1' },
     { id: 'rate', label: 'Rate', kind: 'input', width: 130, min: 90, format: 'decimal', placeholder: '0.00' },
+    {
+      id: 'discount', label: 'Discount', kind: 'input', width: 150, min: 120, format: 'decimal', placeholder: '0.00',
+      unit: { default: 'percent', options: [{ value: 'percent', label: '%' }, { value: 'amount', label: 'Rs.' }] },
+    },
     { id: 'amount', label: 'Amount', kind: 'read-only', width: 140, min: 100, flex: true, resizable: false },
   ];
   //  The amount is derived, never stored — a stored one is a second copy of
-  //  qty × rate that can disagree with the first.
+  //  qty × rate less discount that can disagree with the first.
   const shown = items.map((r) => (r.kind === 'item'
-    ? { ...r, values: { ...r.values, amount: money.format(num(r.values?.qty) * num(r.values?.rate)) } }
+    ? { ...r, values: { ...r.values, amount: money.format(lineAmount(toLine(r))) } }
     : r));
 
   const count = Object.keys(errors).length;
@@ -266,108 +283,7 @@ export function NewSalesOrder({ nextNumber, onCancel, onSave }: NewSalesOrderPro
             onAddGroup={() => setItems((r) => [...r, { id: `g${Date.now()}`, kind: 'group', label: 'Item Header' }])}
           />
 
-          {/* ── ADVANCE PAYMENT ─────────────────────────────────────────────── */}
-          <Surface pad={10} radius="card" border="default">
-            <Stack gap={10}>
-              <Checkbox
-                label="Collect advance payment"
-                description="Ask the customer to pay part of this order upfront. You can record the payment from the sales order once it is saved."
-                selection={advanceOn ? 'checked' : 'unchecked'}
-                onSelectionChange={(next) => setAdvanceOn(next === 'checked')}
-              />
-
-              {advanceOn ? (
-                <Stack gap={10}>
-                  <FormSection
-                    last
-                    trailing={(
-                      <FormRow label="Collect Before" id="collectBefore">
-                        {({ id }) => (
-                          <Select
-                            id={id}
-                            value={collectBefore}
-                            onChange={(v) => setCollectBefore(v as AdvanceTerms['collectBefore'])}
-                            options={Object.entries(COLLECT_BEFORE).map(([value, label]) => ({ value, label }))}
-                          />
-                        )}
-                      </FormRow>
-                    )}
-                  >
-                    <FormRow label="Advance Type" id="advanceType">
-                      {() => (
-                        <Segmented
-                          label="Advance type"
-                          value={advanceType}
-                          onChange={(v) => { setAdvanceType(v as AdvanceType); setAdvanceValue(''); }}
-                          options={[
-                            { value: 'percent', label: 'Percentage (%)' },
-                            { value: 'amount', label: 'Fixed Amount (₹)' },
-                          ]}
-                        />
-                      )}
-                    </FormRow>
-                    <FormRow
-                      label={advanceType === 'percent' ? 'Advance (%)' : 'Advance Amount'}
-                      required
-                      id="advance"
-                      error={errors.advance}
-                    >
-                      {({ id, required, error, describedBy }) => (
-                        <InputField
-                          id={id}
-                          value={advanceValue}
-                          onChange={(e) => setAdvanceValue(e.target.value)}
-                          placeholder={advanceType === 'percent' ? 'e.g. 25' : '0.00'}
-                          format="decimal"
-                          required={required}
-                          aria-required={required || undefined}
-                          error={error}
-                          aria-describedby={describedBy}
-                        />
-                      )}
-                    </FormRow>
-                  </FormSection>
-
-                  {/* What the numbers come to, read back in money. A percentage
-                      the user cannot see the value of is a figure they will
-                      check with a calculator. */}
-                  <Surface tone="sunken" pad={8} radius="md" border="divider">
-                    <Inline gap={10} align="start" wrap>
-                      <Stack gap={1} className="flex-1 min-w-0">
-                        <Text size="body-sm" tone="secondary">Order total</Text>
-                        <Text weight="semibold" className="tabular-nums">{money.format(total)}</Text>
-                      </Stack>
-                      <Stack gap={1} className="flex-1 min-w-0">
-                        <Text size="body-sm" tone="secondary">
-                          Advance due{advanceAmount > 0 ? ` (${percentOfTotal.toFixed(percentOfTotal % 1 ? 2 : 0)}%)` : ''}
-                        </Text>
-                        <Text weight="semibold" tone="link" className="tabular-nums">{money.format(advanceAmount)}</Text>
-                      </Stack>
-                      <Stack gap={1} className="flex-1 min-w-0">
-                        <Text size="body-sm" tone="secondary">Balance on invoice</Text>
-                        <Text weight="semibold" className="tabular-nums">{money.format(Math.max(0, total - advanceAmount))}</Text>
-                      </Stack>
-                    </Inline>
-                  </Surface>
-                  <Text size="body-sm" tone="secondary">
-                    The order is held as Awaiting Advance until the advance is received, and is applied automatically when you convert it to an invoice.
-                  </Text>
-                </Stack>
-              ) : null}
-            </Stack>
-          </Surface>
-
-          <FormSection
-            last
-            full={(
-              <FormRow label="Terms & Conditions" span="full" id="tc">
-                {({ id }) => (
-                  <Textarea id={id} value={values.tc ?? ''} onChange={(e) => set('tc')(e.target.value)}
-                    placeholder="Enter the terms and conditions of your business to be displayed in your transaction" />
-                )}
-              </FormRow>
-            )}
-          >
+          <FormSection last>
             <FormRow label="Customer Notes" id="notes">
               {({ id }) => (
                 <Textarea id={id} value={values.notes ?? ''} onChange={(e) => set('notes')(e.target.value)}
@@ -375,6 +291,69 @@ export function NewSalesOrder({ nextNumber, onCancel, onSave }: NewSalesOrderPro
               )}
             </FormRow>
           </FormSection>
+
+          {/* ── ADVANCE PAYMENT ─────────────────────────────────────────────── */}
+          <Divider />
+          <Stack gap={10}>
+            <Checkbox
+              label="Collect advance payment"
+              description="Ask the customer to pay part of this order upfront. You can record the payment from the sales order once it is saved."
+              selection={advanceOn ? 'checked' : 'unchecked'}
+              onSelectionChange={(next) => setAdvanceOn(next === 'checked')}
+            />
+
+            {advanceOn ? (
+              <FormSection last>
+                <FormRow label="Advance" required id="advance" error={errors.advance}>
+                  {({ id, required, error, describedBy }) => (
+                    <Stack gap={2}>
+                      <InputField
+                        id={id}
+                        value={advanceValue}
+                        onChange={(e) => setAdvanceValue(e.target.value)}
+                        placeholder={advanceType === 'percent' ? 'e.g. 25' : '0.00'}
+                        format="decimal"
+                        required={required}
+                        aria-required={required || undefined}
+                        error={error}
+                        aria-describedby={describedBy}
+                        //  ONE field, and the unit rides at its end. Switching
+                        //  clears the value: 25 meant 25%, and as an amount it
+                        //  would silently become Rs. 25.
+                        unit={{
+                          value: advanceType,
+                          label: 'Advance unit',
+                          options: [{ value: 'percent', label: '%' }, { value: 'amount', label: 'Rs.' }],
+                          onChange: (v) => { setAdvanceType(v as AdvanceType); setAdvanceValue(''); },
+                        }}
+                      />
+                      {/* Read back in the OTHER unit — a percentage the user
+                          cannot see the value of is a figure they will check
+                          with a calculator. */}
+                      <Text size="body-sm" tone="secondary" className="tabular-nums">
+                        {advanceAmount > 0
+                          ? advanceType === 'percent'
+                            ? `${money.format(advanceAmount)} due upfront · ${money.format(Math.max(0, total - advanceAmount))} on the invoice`
+                            : `${percentOfTotal.toFixed(percentOfTotal % 1 ? 2 : 0)}% of the order · ${money.format(Math.max(0, total - advanceAmount))} on the invoice`
+                          : 'A percentage of the order total, or a fixed amount.'}
+                      </Text>
+                    </Stack>
+                  )}
+                </FormRow>
+              </FormSection>
+            ) : null}
+          </Stack>
+          <Divider />
+
+          {/* Not inside a `FormSection`: one with no half-column rows still
+              renders an empty half, and its row gap opens a blank band above
+              this. A `full` row carries its own twelve-column tracks. */}
+          <FormRow label="Terms & Conditions" span="full" id="tc">
+            {({ id }) => (
+              <Textarea id={id} value={values.tc ?? ''} onChange={(e) => set('tc')(e.target.value)}
+                placeholder="Enter the terms and conditions of your business to be displayed in your transaction" />
+            )}
+          </FormRow>
         </Stack>
       </CreatePage>
     </>

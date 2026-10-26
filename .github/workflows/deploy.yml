@@ -1,5 +1,9 @@
-# Builds the prototype and publishes it to GitHub Pages on every push to main.
-# Live at https://rithika-rajesh-19203.github.io/SO-Downpayment/
+# Builds every recorded version of the prototype and publishes them to GitHub
+# Pages, on a push to main or a manual run. A version is a tag (v1, v2, …); see
+# `npm run record`. Tag pushes do not trigger this themselves: the github-pages
+# environment only accepts deploys from main, so `record` runs it on main.
+# Live at https://rithika-rajesh-19203.github.io/SO-Downpayment/ (→ newest
+# version); each version at …/SO-Downpayment/v1/, …/v2/; main at …/latest/.
 name: Deploy prototype
 
 on:
@@ -21,16 +25,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Every tag is a version, so the whole history is needed, not one commit.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-      # `build` runs `npm run check` first, so a boundary failure stops the deploy.
-      - run: npm run build
+      # The current code must pass the boundary rules before anything ships.
+      - run: npm run check
+      - run: node scripts/build-versions.mjs site
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: site
 
   deploy:
     needs: build

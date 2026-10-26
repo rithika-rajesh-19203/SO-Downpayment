@@ -73,13 +73,13 @@ const TOTALS: TotalRow[] = [
  * The right lane is 30 and a symmetric body clips the delete control by 10. The
  * wrapper below is that host.
  */
-function Host({ rows: initial = ROWS, totals = TOTALS as TotalRow[] | undefined }) {
+function Host({ rows: initial = ROWS, totals = TOTALS as TotalRow[] | undefined, columns = COLUMNS }) {
   const [rows, setRows] = useState(initial);
   return (
     <div className="bg-surface-default ps-10 pe-15 py-16">
       <ProductTable
         title="Add Products"
-        columns={COLUMNS}
+        columns={columns}
         rows={rows}
         onRowsChange={setRows}
         totals={totals}
@@ -122,5 +122,30 @@ export const Dark: Story = {
         <Host />
       </Stack>
     </div>
+  ),
+};
+
+/**
+ * A UNIT COLUMN — a typed cell with a `% ▾` segment, for a line discount. The
+ * unit is per row and stored at `values['discount:unit']`; row 2 starts in
+ * `Rs.` to show both.
+ */
+export const UnitColumn: Story = {
+  render: () => (
+    <Host
+      columns={[
+        { id: 'item', label: 'Item', kind: 'input', width: 260, min: 160, placeholder: 'Item' },
+        { id: 'qty', label: 'Qty', kind: 'input', width: 90, min: 70, format: 'numeric', placeholder: '0' },
+        {
+          id: 'discount', label: 'Discount', kind: 'input', width: 150, min: 120, format: 'decimal', placeholder: '0.00', flex: true,
+          unit: { default: 'percent', options: [{ value: 'percent', label: '%' }, { value: 'amount', label: 'Rs.' }] },
+        },
+      ]}
+      rows={[
+        { id: 'u1', kind: 'item', values: { item: 'Office Chair', qty: '4', discount: '10' } },
+        { id: 'u2', kind: 'item', values: { item: 'Desk Frame', qty: '1', discount: '50', 'discount:unit': 'amount' } },
+      ]}
+      totals={undefined}
+    />
   ),
 };

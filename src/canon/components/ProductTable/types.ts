@@ -29,6 +29,13 @@ export interface ProductColumn {
   format?: InputFormat;
   /** Renders `text/secondary` regular rather than `text/default` medium. */
   muted?: boolean;
+  /**
+   * An `input` cell whose value is IN a unit chosen per row — a discount as
+   * `%` or `Rs.`. Renders a joined `% ▾` segment at the cell's trailing edge.
+   * The unit is stored beside the value, at `values['<column id>:unit']`, and
+   * falls back to `default` until a row picks one.
+   */
+  unit?: { options: { value: string; label: string }[]; default: string };
 }
 
 export interface ProductRow {
