@@ -1,0 +1,32 @@
+/* ============================================================================
+   THE TOKEN LAYER — import barrel. Order matters.
+   ----------------------------------------------------------------------------
+   Kept at this path so src/index.css has one stable import. The layering is
+   the md's §3 contract, and it is one-directional:
+
+       primitives  ->  semantic  ->  component
+       198 values      role names    consumes roles ONLY
+
+     1  primitives.css   the palette. RAW HEX LIVES HERE AND NOWHERE ELSE.
+     2  scale.css        type, space, radius, elevation. The only other raw file.
+     3  semantic.css     roles, Light + Dark. var() only, zero hex.
+     4  brand.css        brand hue, an independent axis. var() only.
+     5  badge.css        THE COMPONENT LAYER — status badge, 28 pairings.
+     6  theme.css        roles -> Tailwind utilities, via @theme inline.
+
+   badge.css is the third layer arriving. A status badge fill and its label
+   colour belong together and are chosen together, which is a component
+   decision, not a role — so they are one token pair per state rather than two
+   independent roles. md §2.1.6 states all 28 and the generator verifies them.
+
+   Nothing reaches backwards. A component that references a primitive has
+   skipped the layer that makes retheming possible, and rule 7 of
+   scripts/check-boundaries.mjs fails the build on it.
+   ========================================================================= */
+
+@import './primitives.css';
+@import './scale.css';
+@import './semantic.css';
+@import './brand.css';
+@import './badge.css';
+@import './theme.css';

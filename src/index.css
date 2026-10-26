@@ -1,0 +1,126 @@
+/* ============================================================================
+   Global stylesheet — deliberately tiny.
+   Loaded by BOTH surfaces: src/main.tsx (application) and .storybook/preview.ts
+   (the canon), so the two can never render with different foundations.
+   ========================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import 'tailwindcss';
+@import './canon/tokens/tokens.css';
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body, #root { height: 100%; }
+
+  body {
+    margin: 0;
+    font-family: var(--zf-font-sans);
+    font-size: var(--zf-text-body);
+    line-height: var(--zf-text-body-line-height);
+    font-weight: var(--zf-font-weight-regular);
+    color: var(--zf-color-text-default);
+
+    /* `surface/canvas` is the role for what a page sits on — neutral/300 in
+       Light, neutral/2200 in Dark. It is distinct from `sunken`, which is a
+       recessed well inside a surface. */
+    background: var(--zf-color-surface-canvas);
+
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Tailwind v4's preflight deliberately dropped v3's `button { cursor: pointer }`
+     to match the browser default, so without this rule every button in the system
+     shows an arrow. zf-button.md §11 specifies `cursor: pointer` on `.zf-btn`.
+
+     Set here rather than per component for the same reason focus is: one rule,
+     one answer, and the next interactive component cannot forget it. `:disabled`
+     is excluded so a component's own `cursor-not-allowed` is not fought over. */
+  button { font: inherit; color: inherit; }
+  button:not(:disabled) { cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+
+  /* ── Focus, solved once ──────────────────────────────────────────────────
+     md §2.6.9 found FIVE different blues meaning "this element has keyboard
+     focus" — Blue 1200, 1400, 1500, 1600 and an off-palette fifth — so a user
+     tabbing through one form watched the indicator change colour at every
+     field. One role, 2px, at a 3px offset. `outline` follows the border radius
+     automatically, which is why the ring is never a child element: §2.4.10 and
+     §2.9.2 both record a ring that sat in the layout flow and changed its own
+     control's height. */
+  :focus-visible {
+    outline: 2px solid var(--zf-color-focus-ring);
+    /* 2px, which is what all five per-component mds specify — button §11,
+       radio §10, input field §6, checkbox §9.2, toggle §9.2. It was 3px here
+       while Checkbox and Toggle set 2px locally, so the system carried two
+       offsets: the same class of defect as md §2.6.9's five different blues
+       meaning "focused", one dimension over.
+
+       Do not drop it to 0. zf-toggle.md §6 measures the ring against the
+       control it surrounds at 1.05:1 off and 1.00:1 on — where focus/ring and
+       primary/default are both blue/1200. The gap is what puts page colour
+       next to the ring, and the page is what the 3:1 is measured against. */
+    outline-offset: 2px;
+  }
+
+  /* zf-mini-list.md §4.4 — the mini list's active row is a FILL, and
+     forced-colors replaces every author background with a system colour. So
+     the one thing telling a user which record they are reading is erased there
+     no matter which fill it is. A real border has to carry it.
+
+     This used to back up a `box-shadow` edge, which forced-colors also
+     discards. The edge is gone and the rule matters MORE, not less: it is now
+     the only selection cue that survives the mode, rather than a second copy of
+     one that was already visible.
+
+     Here rather than in the component because `Highlight` is a system colour
+     with no token and no Tailwind utility, and an arbitrary value would fail
+     rule 1 — correctly: it is a colour, and colours do not belong in a
+     component file. `[data-zf-selected]` is the hook the row sets. */
+  /*  A POINTER GESTURE OWNS THE WHOLE DOCUMENT WHILE IT LASTS.
+      Both of these are set from JS on <html> for the duration of a drag, and
+      both exist for the same reason: the pointer is captured, so it leaves the
+      7px grabber or the 20px grip almost immediately, and without a
+      document-wide rule the cursor reverts to whatever it is now over — it
+      flickers between `col-resize` and `text` on every pixel of the drag.
+
+      `user-select: none` stops the drag painting a text selection across half
+      the table, which is what a horizontal pointer drag over a table does by
+      default and looks like a bug. */
+  html[data-zf-resizing='col'] * { cursor: col-resize !important; user-select: none; }
+  html[data-zf-dragging='row'] * { cursor: grabbing !important; user-select: none; }
+
+  @media (forced-colors: active) {
+    [data-zf-selected='true'] { border-inline-start: 2px solid Highlight; }
+  }
+
+  /* zf-modal.md §10.3 — THE SCROLL LOCK, which `<dialog>` does not give you.
+     `showModal()` makes the background inert, traps focus and stacks in the top
+     layer; it does not stop the page behind from scrolling.
+
+     THE GUTTER IS UNCONDITIONAL, and putting it inside the `:has()` is the bug
+     it was written to fix. Reserved only while a dialog is open, a page with no
+     scrollbar GAINS one on open and loses it on close. §10.3 measured it: a
+     3000px page stays at 1265 throughout, and a 10px page goes 1280 → 1265 →
+     1280 — the full 15px, in both directions, on exactly the short confirmation
+     and settings screens a dialog most often sits on.
+
+     Reserving it always costs 15px of a page that never scrolls and removes the
+     class of bug entirely. `:has()` also means no class bookkeeping and no
+     cleanup to forget on unmount — a crash mid-close cannot leave the page
+     permanently unscrollable. */
+  html { scrollbar-gutter: stable; }
+  html:has(dialog[open]) { overflow: hidden; }
+
+  /* The knob slides, the panel slides, the accordion opens. md §2.4.8 and
+     §2.14.7 both flag reduced-motion as unaddressed; handle it once here. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

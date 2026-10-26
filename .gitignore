@@ -1,0 +1,11 @@
+node_modules
+dist
+canon-static
+storybook-static
+*.local
+.DS_Store
+.vite
+*.tsbuildinfo
+canon.log
+*.log
+*.textClipping

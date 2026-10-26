@@ -1,0 +1,819 @@
+{
+  "$comment": "THE CANON — the component list. Hand-authored: this is the file you edit when a component is added, promoted or retired. docs/COMPONENTS.md is generated from it (npm run canon:docs), and scripts/check-boundaries.mjs cross-checks it against the real exports and the folders on disk, so it cannot drift out of sync with reality.",
+  "components": [
+    {
+      "name": "Stack",
+      "category": "primitive",
+      "status": "stable",
+      "use": "Vertical spacing between elements. Use instead of margins or space-y-*.",
+      "props": {
+        "gap": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "8",
+          "10",
+          "12",
+          "16",
+          "20"
+        ],
+        "align": [
+          "start",
+          "center",
+          "end",
+          "stretch"
+        ],
+        "justify": [
+          "start",
+          "center",
+          "end",
+          "between"
+        ],
+        "grow": "boolean — fill the flex parent and allow inner scrolling"
+      },
+      "source": "md §1.6 — gaps are steps on the 2px scale, not t-shirt sizes."
+    },
+    {
+      "name": "Inline",
+      "category": "primitive",
+      "status": "stable",
+      "use": "Horizontal row of elements — toolbars, cell contents, button groups.",
+      "props": {
+        "gap": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "8",
+          "10",
+          "12",
+          "16",
+          "20"
+        ],
+        "align": [
+          "start",
+          "center",
+          "end",
+          "baseline",
+          "stretch"
+        ],
+        "justify": [
+          "start",
+          "center",
+          "end",
+          "between"
+        ],
+        "wrap": "boolean",
+        "grow": "boolean — fill remaining width, lets children truncate"
+      },
+      "source": "md §1.6"
+    },
+    {
+      "name": "Text",
+      "category": "primitive",
+      "status": "stable",
+      "use": "All text. Pick a size, a weight and a tone; never set a font size or colour on a screen.",
+      "props": {
+        "size": "display · title-lg · title · heading · subheading · body-lg · body · body-sm · label · caption · overline. `body-lg` is 14/20 — a retired size re-entered by declaration for the tab label; the ramp otherwise jumps 13 to 16",
+        "weight": [
+          "regular",
+          "medium",
+          "semibold",
+          "bold"
+        ],
+        "tone": [
+          "default",
+          "secondary",
+          "tertiary",
+          "placeholder",
+          "disabled",
+          "inverse",
+          "link",
+          "success",
+          "warning",
+          "danger",
+          "info"
+        ],
+        "as": "ElementType — override the tag without changing the look",
+        "truncate": "boolean — single line with ellipsis"
+      },
+      "source": "md §1.4 — 13 roles from 1,306 measured nodes. variant and tone are separate axes."
+    },
+    {
+      "name": "Surface",
+      "category": "primitive",
+      "status": "stable",
+      "use": "Any card, panel or region needing a background, border, radius or shadow.",
+      "props": {
+        "tone": [
+          "canvas",
+          "default",
+          "raised",
+          "sunken",
+          "hover",
+          "pressed",
+          "selected",
+          "disabled",
+          "inverse"
+        ],
+        "pad": [
+          "0",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "8",
+          "10",
+          "12"
+        ],
+        "radius": [
+          "none",
+          "xs",
+          "sm",
+          "md",
+          "lg",
+          "xl",
+          "2xl",
+          "full"
+        ],
+        "border": [
+          "none",
+          "default",
+          "hover",
+          "strong",
+          "divider"
+        ],
+        "elevation": [
+          "none",
+          "raised",
+          "popover",
+          "modal",
+          "drawer"
+        ],
+        "grow": "boolean"
+      },
+      "source": "zf-colours.md §3 surface/* · zf-design-cannon.md §1.5 radius · open item 13 elevation"
+    },
+    {
+      "name": "Icon",
+      "category": "primitive",
+      "status": "stable",
+      "use": "Every icon in the product. One 16x16 glyph, slot size and colour by token.",
+      "props": {
+        "name": "IconName — one of 38 names in icons/paths.ts",
+        "size": "caret 7.5 · xs 12 · sm 14 · md 16 · lg 20 · xl 24. `caret` is the one value OFF the ramp and is a CONTROL DECORATION, not a glyph slot: caret-down-bold's ink nearly fills its 24 viewBox, so the slot is the arrow, and at xs it draws a 12px arrow that competes with the label beside it. Not 'the size below xs' — do not reach for it for glyphs",
+        "tone": [
+          "inherit",
+          "default",
+          "subtle",
+          "disabled",
+          "inverse",
+          "primary",
+          "success",
+          "warning",
+          "danger"
+        ],
+        "label": "string — accessible name. Omit for decorative; REQUIRED on an icon-only control."
+      },
+      "source": "md §1.7 — glyph authored at 16, slot is per-component (open item 13). 34 of 38 names await Figma export."
+    },
+    {
+      "name": "Banner",
+      "category": "feedback",
+      "status": "stable",
+      "use": "One line saying what just happened, at the top of the thing it happened to.",
+      "props": {
+        "tone": "danger | warning | success | info (default). Each gets its own SHAPE as well as its own colour",
+        "children": "the message. One line",
+        "onDismiss": "renders the ✕ at 24 — the glyph is 16 and 2.5.8 asks for 24. Omit for a banner the user cannot get rid of"
+      },
+      "source": "No md. §2.13.2: every tone gets its own shape, not just its own colour — 1.4.1, because a banner distinguished only by being red is one a colour-blind user cannot tell from the green one. role=\"alert\" for danger and warning (assertive: a failed submit has to interrupt, the user pressed the button and is already looking elsewhere), role=\"status\" otherwise (a success note must not cut across whatever they moved on to). Measured: every {family}/text on its own {family}/subtle is past 6:1 — danger 6.32, warning 7.03, success 7.47, info 6.12."
+    },
+    {
+      "name": "StatusBadge",
+      "category": "data-display",
+      "status": "stable",
+      "use": "Read-only label for the current state of a record. Table cells, list rows, detail headers, cards. Never interactive.",
+      "props": {
+        "status": [
+          "success",
+          "accepted",
+          "approved",
+          "submitted",
+          "in-progress",
+          "pending",
+          "overdue",
+          "cancelled",
+          "failed",
+          "draft",
+          "void",
+          "inactive",
+          "expired",
+          "unclassified"
+        ],
+        "emphasis": [
+          "default",
+          "solid"
+        ],
+        "children": "ReactNode — the visible label, and the only thing carrying the meaning"
+      },
+      "source": "md §2.1 — 28 variants (14 states x 2 emphases), complete matrix. Colour pairs generated into tokens/badge.css and verified against §2.1.6."
+    },
+    {
+      "name": "DescriptionList",
+      "category": "data-display",
+      "status": "stable",
+      "use": "A record's fields as label/value pairs — the body of a detail view. One label column width down the whole list, so every value starts at the same x.",
+      "props": {
+        "items": "DescriptionListItem[] — { id?, label, value }. `value` takes a node, so a StatusBadge or a danger-toned date is a value like any other",
+        "layout": "inline (default — label beside value, sharing chrome/field-label at 140px) | stacked (label above, for a column too narrow to give 140px away)",
+        "gap": "4 | 5 | 6 | 8 — the rhythm between pairs"
+      },
+      "source": "No md on disk. It is a <dl> and that is the information: same pixels as two columns of divs, different content — a screen reader announces the PAIR rather than eleven labels followed by eleven unattached numbers. The row is a <div> inside the <dl> (an HTML5 allowance made for exactly this) because otherwise the flex container is the <dl> and every dt and dd becomes its own flex item, laying eleven pairs out as one ribbon. chrome/field-label is the only geometry it invents: 140px, text-fitted, named per §1.6.3 so two detail views cannot disagree. No columns prop — a second column inside the narrow half of a split view is how the label width stops being one width."
+    },
+    {
+      "name": "Button",
+      "category": "action",
+      "status": "stable",
+      "use": "Every button. The label is the children; omit them and it is icon-only, which is Figma’s separate \"Button Icons\" set collapsed into this one.",
+      "props": {
+        "intent": [
+          "default",
+          "success",
+          "warning",
+          "danger"
+        ],
+        "emphasis": [
+          "primary",
+          "secondary"
+        ],
+        "size": [
+          "lg",
+          "md",
+          "sm"
+        ],
+        "icon": "IconName — leading glyph. Defaults to none",
+        "iconRight": "IconName | ReactNode — trailing glyph. A name takes the button's own slot (16/14/12 by size); pass a node to choose the slot yourself, which a dropdown caret needs: size=\"caret\" is 7.5 and no button slot goes below 12",
+        "label": "string — REQUIRED when there are no children, or it announces as \"button\"",
+        "type": "button · submit · reset. Defaults to \"button\" so it cannot submit a form by accident",
+        "disabled": "boolean — one appearance for all eight intent x emphasis combinations"
+      },
+      "source": "zf-button.md — 4 Figma sets, 208 variants. Button + Button Icons collapse here (same HTML); Hyperlink and Split Button are separate components. State is native pseudo-classes, not a prop."
+    },
+    {
+      "name": "Radio",
+      "category": "form",
+      "status": "stable",
+      "use": "Single-select control — exactly one option in a group may be chosen. The control only: 12×12, no label, no hit area. Wrap it in a <label> inside a <fieldset>.",
+      "props": {
+        "error": "boolean — validation failure, independent of selection. Ignored when disabled (§3)",
+        "checked": "boolean — native",
+        "disabled": "boolean — native",
+        "name": "string — native; a shared name is what gives arrow-key navigation"
+      },
+      "source": "zf-radio.md — 16 combinations, 10 in Figma. State and Is Active are pseudo-classes, so `error` is the only prop and all 16 exist by construction. Selection is a 3px ring with a 6px core: NO CENTRE DOT (§9)."
+    },
+    {
+      "name": "Field",
+      "category": "form",
+      "status": "stable",
+      "use": "The whole form field — label, required marker, input, help/error message. USE THIS ONE (§1). It owns the aria wiring that Figma cannot express.",
+      "props": {
+        "label": "string — REQUIRED",
+        "required": "boolean — asterisk + aria-required",
+        "message": "string — help text, or the error text",
+        "showMessage": "boolean — IGNORED when error is set; an error message is never optional (§2.1)",
+        "error": "boolean",
+        "disabled": "boolean",
+        "…": "every InputField prop is forwarded"
+      },
+      "source": "zf-input-field.md §2 — `zf-field`. 9 Figma variants; State is pseudo-classes so only `error` survives."
+    },
+    {
+      "name": "InputField",
+      "category": "form",
+      "status": "stable",
+      "use": "The input box only. Reach for `Field` instead unless you genuinely need a bare box — a table inline-edit cell, a toolbar search.",
+      "props": {
+        "error": "boolean — ignored when disabled (§5)",
+        "icon": "IconName — 16×16, off by default",
+        "iconRight": "IconName — off by default",
+        "disabled": "boolean — native",
+        "format": "text (default) | numeric | decimal | tel | date. What the field accepts, filtered on CHANGE so typing, pasting, drag-drop and autofill are all covered and a controlled caller receives the cleaned value. `date` also MASKS: 22032026 becomes 22/03/2026, with the separator added only when a digit FOLLOWS it — append it eagerly and backspace becomes a trap, the user deletes the slash and the mask puts it straight back. The caret is preserved by counting DIGITS, not characters, because the mask adds and removes separators around it. NEVER type=\"number\" (a scroll wheel silently changes the value, leading zeros are dropped, spinners are unstyleable, and 1e5 is a 'valid number') and never type=\"date\" (the picker is painted by the OS, its displayed format follows the browser LOCALE so the same value reads 22/03 to one user and 03/22 to another, and its value is ISO — a second format for every consumer to convert)."
+      },
+      "source": "zf-input-field.md §3 — `Input Field/States`. 18 Figma variants collapse to 2: `States` are pseudo-classes and `Content` (placeholder vs value) is native `::placeholder`."
+    },
+    {
+      "name": "Textarea",
+      "category": "form",
+      "status": "stable",
+      "use": "The multi-line InputField. Same border, radius, ring, disabled treatment and placeholder role; sized in rows rather than by a height, and vertically resizable.",
+      "props": {
+        "rows": "starting height in LINES (default 3). The native attribute, so the browser does the arithmetic against the font actually rendering",
+        "error": "border AND ring both danger/default, 6.09:1 — matching InputField",
+        "disabled": "also removes the resize grip"
+      },
+      "source": "No md — it inherits zf-input-field.md through InputField and nothing is measured twice. py-control-pad is (chrome/control - body line-height) / 2 = 7, the SAME token FormRow uses for its label offset, so a one-row textarea is exactly an input's height and its first line sits where an input's value does. resize: VERTICAL — not none, because a user with six lines in a three-line box has a good reason to want to see them and the grip is the only fix they have; not both, because horizontal resize breaks the grid, the control being 3 of 12 columns less the 30px inset and a dragged width putting this field's trailing edge where no other field's is."
+    },
+    {
+      "name": "Checkbox",
+      "category": "form",
+      "status": "stable",
+      "use": "Multi-select control with an indeterminate state for partly-selected parents. Omit `label` for the bare box — the table select-row cell.",
+      "props": {
+        "selection": [
+          "unchecked",
+          "checked",
+          "indeterminate"
+        ],
+        "onSelectionChange": "(next) => void — a mixed parent resolves, never cycles back to mixed",
+        "label": "string — omit for the bare box. The label is the hit area and the only thing that makes 2.5.8 pass",
+        "description": "string",
+        "error": "boolean — ignored when disabled",
+        "errorMessage": "string",
+        "disabled": "boolean",
+        "name": "string",
+        "value": "string"
+      },
+      "source": "zf-checkbox.md — 24 valid combinations, 15 in Figma. One Selection enum, not two booleans (§2.1). All 12 error combinations exist. `surface/default` fill fixes the dark-mode white block (§4.2). THE BOX IS 14, not §3.1's measured 12 — a design decision of 28 Aug 2026, held in `chrome/checkbox` because `spacing 14` is a RETIRED value that npm run check rejects inside --zf-space-*. §3.1's own note says Figma's 1px CENTER stroke rendered the 12px box at 13, so the measured 12 was a box-sizing artefact rather than what anyone saw. Radio is still 12 and now visibly disagrees — flagged, not changed."
+    },
+    {
+      "name": "Toggle",
+      "category": "form",
+      "status": "stable",
+      "use": "Binary switch that takes effect immediately — flipping it IS the action, so there is no Save. Needs no form submit; use Checkbox if it does.",
+      "props": {
+        "checked": "boolean",
+        "onCheckedChange": "(next: boolean) => void",
+        "label": "string — REQUIRED. The label is the hit area and the only thing that makes 2.5.8 pass",
+        "size": [
+          "md",
+          "sm"
+        ],
+        "error": "boolean — a persistent ring, not a focus treatment",
+        "errorMessage": "string",
+        "disabled": "boolean",
+        "name": "string"
+      },
+      "source": "zf-toggle.md rev 2 — option A: the off track darkens to neutral/1100 (4.52:1 both boundaries). A knob border fails at 2.95. role=\"switch\". Error renders at rest, outside the track."
+    },
+    {
+      "name": "Pill",
+      "category": "action",
+      "status": "stable",
+      "use": "A filter chip — a toggle that switches a list or table between subsets. Multiple can be on at once. Not a button, not a badge, not a tab.",
+      "props": {
+        "label": "string — truncates at 20 characters with a real ellipsis",
+        "selected": "boolean — becomes aria-pressed, which IS the styling hook (§8)",
+        "onSelectedChange": "(next: boolean) => void",
+        "icon": "ReactNode — optional, render at 16px",
+        "disabled": "boolean"
+      },
+      "source": "zf-pill.md — 8 of 8 variants, 34 of 34 paints on semantic roles. Selected fill is primary/selected (5.48:1), not primary/default (4.32, fails). Resting border left at border/default and flagged: rebinding to border/control flattens hover to 1.05:1 (§4.4a)."
+    },
+    {
+      "name": "Wizard",
+      "category": "navigation",
+      "status": "stable",
+      "use": "A stepper — where the user is in a multi-step flow. Three orientations from one steps array; Figma’s two step atoms are collapsed into one presentation variant.",
+      "props": {
+        "steps": "Step[] — { id, label, description?, state, clickable? }. `description` is a second line under the label and works in BOTH orientations. It costs two alignment fixes, both invisible until a description exists and then wrong everywhere: the label centres against the marker inside its own 24-tall line box rather than against the two-line block, and the connector is pinned to the marker's centre (mt-6, half the marker) rather than riding items-center on the row — which is the same place ONLY while every step is exactly one marker tall.",
+        "orientation": [
+          "horizontal",
+          "vertical",
+          "tabs"
+        ],
+        "onStepClick": "(id: string) => void",
+        "label": "string — REQUIRED; an unlabelled <ol> of steps announces as a bare list"
+      },
+      "source": "zf-wizard.md — 3 Figma sets, 19 variants. §7: one atom, not two. §2.1: a completed card was indistinguishable from an upcoming one (1.00:1, same variable) — fixed with a success/default tick. Borders bound to border/control, the one component where the rebind has no side effect (§4.4)."
+    },
+    {
+      "name": "Tabs",
+      "category": "navigation",
+      "status": "stable",
+      "use": "One record, several views of it. A 40px strip with a 2px selected indicator, one tab stop, and a trailing slot on the same baseline for a control that acts on whichever tab is open.",
+      "props": {
+        "items": "TabItem[] — { id, label, badge?, disabled? }. A disabled tab is SKIPPED by the arrows, not focused-and-inert: a tab is a destination, and arrowing onto one you cannot open is a dead end",
+        "value / onChange": "controlled. Selection follows focus, which is the APG default for a panel that is cheap to render",
+        "label": "names the tablist. Required",
+        "trailing": "a control on the strip's baseline — a Segmented view switch, a filter. Outside the arrow-key model on purpose: it is not a tab",
+        "children": "the panel. One node; the caller decides what the active tab renders",
+        "inset": "section (default, space/15 = 30 — for a card that is pad={0} so the strip's rule can reach its edges) | none (flush — for a container that has already inset its content). At `section` inside a creation-page body the tabs sat 30 further in than the form labels above them and the shared baseline started in the wrong place."
+      },
+      "source": "No md on disk — measured off the reference and built to the ARIA tabs pattern. GEOMETRY: strip pt-10 (20, space/10) and px-section (30); the tab is its label plus pb-6 (12) with NO inline padding and NO fixed height, so the indicator is exactly the width of the word it underlines and the 12 is a real 12 from line box to rule — inside a fixed height, items-center would add half the leftover leading and render it as 16+. The 16 between tabs is a gap on the tablist, one number rather than two 8s meeting. THE RULE is on an INNER element so it starts at the first tab: a border-b on the padded element spans its padding box and reads as the card being divided in two rather than as the tabs having a baseline. THE INDICATOR is 3 with radius/xs (2) on its TOP corners and bottom:-1px, which puts its lower edge level with the rule's — the two are one line, not two that failed to meet, and the bottom corners stay square because they sit inside the rule. It is absolute, so a selected tab is not 3px taller than its neighbours. THE ROW is items-START so the TABLIST owns its height: under items-stretch the trailing wrapper's own natural height set it instead, the rule dropped and the bar stopped short of it. The trailing wrapper is h-tab-label, pointing at --zf-text-body-lg-line-height — the same declaration the label reads — so a taller control centres on the label's line box by reference rather than by a matching number. COLOUR: selected is text/default (15.15) and SEMIBOLD, hover is primary/text (5.92 — not primary/default's 4.32, which fails 1.4.3 for 14px text), rest is text/secondary (6.79). Black-and-semibold says 'you are here', blue says 'you could go here'. The indicator stays primary/default: a graphic answering 1.4.11's 3:1, not text. The count is a 20-tall pill — surface/pressed with text/secondary at rest (5.68 / 8.15), primary/HOVER with primary/on-primary when selected (5.48 / 8.62; primary/default would be 4.32 and fail for a 12px number). TYPE: labels are 14/20 (body-lg), a RETIRED size re-entered on purpose and declared in check-boundaries.mjs's RETIRED_EXCEPTIONS — on the type scale so Text can express it and the one-line-height rule still applies. The ramp jumps 13 to 16 and a tab sits between: 13 reads as clickable body text, 16 competes with the section heading. Because the weight changes on select and semibold is wider than medium, a hidden semibold copy reserves the width so selecting a tab cannot shove its neighbours under the pointer that just clicked. BEHAVIOUR: one tab stop (arrows between, Tab past), the panel aria-labelledby its tab and the tab aria-controls its panel, selection following focus, and the panel at tabIndex=0 so Tab lands IN a read-only record view instead of skipping it. No vertical orientation — that is a different keyboard model and therefore a different component."
+    },
+    {
+      "name": "CreatePage",
+      "category": "navigation",
+      "status": "stable",
+      "use": "The scrolling body and action footer of a new-record page. The body is the ONLY scroller and carries the 12-column grid context; the 72px footer never moves.",
+      "props": {
+        "children": "the form. Scrolls.",
+        "footer": "Save then Cancel — §7.1 puts the primary first",
+        "reserveEndLane": "reserve the 30px trailing lane a ProductTable's delete controls hang in. zf-product-table.md §2.1: a body at 20/20 clips that control by 10 and 62% of the target becomes unhittable — amend the host, never shrink the lane. It is a MODE of the page, not a tweak: §2.2 defines the column as (W - 20 - 30) / 12 when a product table is present, so the grid follows."
+      },
+      "source": "ZF-CREATE-PAGE.md §2. The header is a SIBLING, not a child: AppShell owns the page shell and PageHeader owns its own 64 and flex-none, so nesting it would give the page two components that both think they are the frame. px-10 (20) and NO GUTTER — the 30px input inset and the slack column do all the separating, so a column is a pure twelfth of the content box and the arithmetic is (W-40)/12. Add a gutter and every number in §2's table changes. container-type: inline-size is set here so the reflow queries measure the FORM's width, not the viewport's — behind a 220 rail that is a 220px difference and a viewport query stacks at the wrong moment in both directions."
+    },
+    {
+      "name": "FormSection",
+      "category": "form",
+      "status": "stable",
+      "use": "Two halves of six columns, rows at space/12, a 1px bottom divider. Children fill the left half top-to-bottom, then the right.",
+      "props": {
+        "children": "rows for the left half",
+        "trailing": "rows for the right half. Omit for a single-column section",
+        "last": "no divider — a rule with nothing under it is the line the source drew twice",
+        "dividerGap": "default (§2's 32 of block-end padding, with the space BELOW left to whatever follows) | tight (chrome/form-divider — 25 — on BOTH sides, owned here rather than split between this component and the caller's gap: a rule with 25 above and 32 below is not a divider, it is a divider that has slipped, and two owners is how that happens). 25 is ODD, so it is not a step and never can be — this scale is 2N — which makes it component geometry by the same test as chrome/card's 10.",
+        "full": "rows that run across all twelve columns, after both halves. A FormRow span=\"full\" MUST go here and not in `children`: its col-span-full needs a grid to span and the halves are flex columns, so in `children` the span is inert, 2fr 9fr 1fr resolves inside the half, and the label track comes out at HALF the width every other row has — the label then overflows it and the control starts left of every control above it, which is the one thing §4.1's fixed track exists to prevent."
+      },
+      "source": "ZF-CREATE-PAGE.md §2. What separates the halves is NOT a gap: it is the left half's slack column plus the right half's label column, 330 of empty and label the grid produces for free. A column-gap would make a column stop being a pure twelfth and §2's whole table would be wrong by its width — hence gap-x-0, stated rather than omitted. Each half is its own column flow so DOM order IS reading order: 2.4.3, and grid-auto-flow: column would produce exactly the zig-zag it forbids."
+    },
+    {
+      "name": "FormRow",
+      "category": "form",
+      "status": "stable",
+      "use": "One form row: label 2 columns, control 3 columns less a 30px trailing inset, slack 1. 2 + 3 + 1 = 6, the columns a half owns.",
+      "props": {
+        "label": "the field label. Never truncated — it wraps and the row grows",
+        "required": "draws the asterisk AND passes `required` to the control",
+        "span": "half (default) | full — the same 2+3+1 shape across all twelve",
+        "children": "(props: { id, required, error, describedBy }) => ReactNode. A render prop so <label for> points at something that exists, and so the control gets everything it needs to be correctly associated AND correctly announced",
+        "error": "the validation message, or nothing. Present means the row is in error. It renders as a GLYPH in the 30px trailing gutter the row already reserves — NOT as a line of text under the control, which adds ~18px to the row the moment it appears and takes it away the moment it is fixed, so a form being corrected jumps under the hand doing the correcting, once per keystroke under live validation. The message still exists in sr-only and aria-describedby points at it, so a screen reader reads the field, then 'invalid', then the reason; the glyph is aria-hidden with a `title` for pointers. WHAT THIS GIVES UP: a sighted keyboard user gets the border, the glyph and the page's Banner but not this field's sentence — which is why the banner must say what to DO, not just that something failed. zf-radio.md §8 still holds: a red border alone is not enough, and the row owns aria-invalid, aria-describedby and the message id together because a caller wiring them by hand will wire two. §5.1: the LABEL never turns red.",
+        "id": "override the generated id. Only needed when something outside the row must find the control — moving focus to the first invalid field on submit is the case it exists for"
+      },
+      "source": "ZF-CREATE-PAGE.md §3. THE TRACK IS FIXED AND THE LABEL HUGS — §4.1's finding: making the label FILL its 2-column track pushed the asterisk to the far edge of the column, yards from the word. Track 2fr never moves so every input starts on column 3; label is max-content capped at the track so the asterisk lands beside the last word. Measured at a 220 track, the control starts at 220 for a 53px label, a 117px label and one clamped and wrapped. The label's FIRST line centres on the control at calc((chrome/control - 20)/2) = 7 — derived, not a token, so it self-corrects where Figma carries a literal 7 in 34 instances. Verified against our own tokens: THREE control heights and nothing relates them — input 34, button-lg 32, toolbar item 28 (§7 decision 2). §5.1: the source colours the whole required label red, which spends the error colour on a resting state and makes 'required' a colour difference (1.4.1); here only the mark is danger/default and aria-required does the work."
+    },
+    {
+      "name": "Select",
+      "category": "form",
+      "status": "stable",
+      "use": "Choose one value from a list. Drawn as an InputField — same 34 box, border, radius and ring — so a select and a text field on one form row are the same control with a caret.",
+      "props": {
+        "options": "SelectOption[] — { value, label, media?, disabled? }. `media` is a thumbnail beside the label, rendered in the list AND in the trigger once chosen: a picture that identifies an option must still identify it after you have picked it, or it is a decoration on a menu. A ReactNode and not a `src`, because some products have photographs, some initials, some a category icon — this component should not have an opinion about which. A disabled option is announced and skipped by the arrows",
+        "value / onChange": "controlled. '' for none",
+        "placeholder": "shown when nothing is chosen, in text/tertiary (4.52) — never text/placeholder, which is 2.85 and below what 1.4.3 asks of text",
+        "id": "wired by FormRow so <label for> points at the trigger",
+        "ariaLabel": "only when no visible <label for> points at it",
+        "required / disabled / error": "`error` — named to match InputField and Textarea, NOT `invalid`. Three controls on one form row must not need three words for one state: the wrong one is a silent no-op, because an unknown prop on a component that spreads nothing simply vanishes. It recolours the border AND the ring to danger/default.",
+        "ariaDescribedBy": "points at the validation message. Declared one at a time rather than spreading HTMLAttributes, for the same reason Text does — widening it would also admit `style`"
+      },
+      "source": "No md on disk — built to the ARIA combobox-with-listbox pattern. NOT a Menu: a menu is a list of commands, a select is a list of values with one currently true, so role=listbox with aria-selected rather than menuitem — §1's test, two things needing different HTML are two components. It does reuse MENU_SURFACE so the panel is the same paper, as PageHeader's switcher already does. NOT a native <select>: the options are painted by the OS and cannot match the field beside them, and the cost is writing every keyboard behaviour out. Closed, arrows change the value in place the way a native select does and Enter/Space/Alt+arrow open; open, arrows and Home/End move, Enter/Space commit, and Escape RESTORES the value it opened with — a cancel that leaves the change behind is not a cancel. Focus never leaves the trigger; the active option is named by aria-activedescendant. The panel matches the trigger's WIDTH, unlike a menu, and repositions on capture-phase scroll because the create page's body is a scroller and the panel is fixed."
+    },
+    {
+      "name": "Divider",
+      "category": "primitive",
+      "status": "stable",
+      "use": "A thematic break between two blocks of a page. An <hr>, so it carries role=\"separator\" for free.",
+      "props": {
+        "orientation": "horizontal (default) | vertical. Vertical is self-stretch, so it runs the height of the tallest item in the flex row it sits in — it has no width of its own to give",
+        "weight": "default (1px) | hairline (chrome/hairline, 0.5px). At 1px border/divider is already the lightest role there is (1.20:1) and the only way further down is thinner, not paler. A HINT, not a guarantee: half a device pixel at 1x is antialiased, at 2x it is one crisp pixel, and engines round it differently — never carry information on it",
+        "gap": "none (default) | tight (chrome/form-divider, 25, on the two sides the rule does not run along — the SAME token FormSection dividerGap=\"tight\" uses, so a page cannot have two divider rhythms)"
+      },
+      "source": "No md. It exists because rule 4 forbids a bare styled element in a screen, and a page needing a rule between two blocks was otherwise rendering an EMPTY FormSection to borrow the one it draws — a section with no rows is not a divider, it is a section that failed to render. THE RULE IS THE BOX, not a border: a UA <hr> draws an inset 3D groove so a border approach has to zero all four edges before setting one, and border widths take Tailwind's own numeric scale, so a 0.5px border cannot be expressed at all — a box can, because --spacing-* accepts a named key."
+    },
+    {
+      "name": "Segmented",
+      "category": "form",
+      "status": "stable",
+      "use": "2–4 mutually exclusive options in a shared track, exactly one selected — changes HOW content is shown, not WHICH. If none-selected is valid it is not this component (§7).",
+      "props": {
+        "options": "SegmentOption[] — { value, label, icon? }; label is required even when hidden",
+        "value": "string",
+        "onChange": "(next: string) => void",
+        "showLabels": "boolean — Figma’s `Show label`; false moves the label to sr-only, never drops it",
+        "disabled": "boolean — the WHOLE group; per-option disabling is deliberately absent",
+        "label": "string — REQUIRED, the radiogroup’s accessible name",
+        "size": "md (default, the measured control — 32 overall, a 28 segment) | sm (24 overall, a 20 segment, for a control riding another component's baseline). Only the segment's block-size moves: the 2px track inset, the 9px inline padding and the radii scale with it and stay concentric across that inset — 8/6 at md, 4/2 at sm, so the two sizes are one control and not two drawings of it"
+      },
+      "source": "zf-segmented.md — 2 Figma sets, 11 variants. §2.1: the selection signal was 1.12:1 Light and 1.05:1 Dark, fixed with a 1px border/control (4.02 / 3.75) — the eighth component to need that role. §8: ARIA radiogroup with roving tabindex, the one component where a native element is not enough."
+    },
+    {
+      "name": "Stepper",
+      "category": "form",
+      "status": "stable",
+      "use": "A numeric input with increment/decrement chevrons, for bounded values adjusted in small steps. Exports the bare control and StepperField (label + control + help). If a user is more likely to type than click, use a plain field (§7).",
+      "props": {
+        "value": "number",
+        "onValueChange": "(next: number) => void",
+        "min / max / step": "number",
+        "tone": [
+          "neutral",
+          "success",
+          "error"
+        ],
+        "disabled / readOnly": "boolean",
+        "btnsLeft": "boolean — Figma’s Position=left; reversed order, never a rotation",
+        "label": "string — REQUIRED; interpolated into each chevron’s aria-label",
+        "help": "StepperField only — help text, or the error text when tone is error",
+        "inline": "StepperField only — Figma’s Layout=left"
+      },
+      "source": "zf-input-stepper.md — 3 Figma sets, 42 variants. §2: the Tone axis never reached the stepper — all six field variants embed Validation=none, so error coloured only the help text and left the border grey. One tone prop now drives both. §4.4: four border/* uses failed 1.4.11 (1.31, 2.85, 1.20 ×2); the three static ones take border/control at 4.52 and hover takes text/secondary at 6.79 (§11 decision 2)."
+    },
+    {
+      "name": "Accordion",
+      "category": "data-display",
+      "status": "stable",
+      "use": "A disclosure list — stacked sections whose headers show or hide their bodies. Built on <details>/<summary>, so open state, keyboard and announcement are native. Exports Accordion, AccordionItem, AccordionNote.",
+      "props": {
+        "Accordion.group": "string — shared <details name>; one section open at a time, no script",
+        "AccordionItem.title": "string",
+        "AccordionItem.children": "ReactNode — Figma’s Body INSTANCE_SWAP",
+        "AccordionItem.count / countLabel": "number / string — the unit is announced, not shown",
+        "AccordionItem.action": "{ label, icon?, onClick } — a real <button>, 24px target",
+        "AccordionItem.chevron": [
+          "trailing",
+          "leading"
+        ],
+        "AccordionItem.defaultOpen / disabled": "boolean"
+      },
+      "source": "zf-accordion.md — 1 set (16 variants) + 2 loose components, 220 paints all role-bound. §2: the count badge was 4.32:1 at 11px, recorded as a pass by its own doc frame — now primary/selected at 5.48. §2.1: the focus ring was 1px clear, overlapped its neighbours and was clipped on the end items — now inset at -5. §2.2: the header was 42 collapsed / 43 expanded — the divider moved to the body. §8: a real <button> action needs no stopPropagation, correcting the doc frame."
+    },
+    {
+      "name": "AccordionItem",
+      "category": "data-display",
+      "status": "stable",
+      "use": "One section of an Accordion. Public because Accordion composes children rather than taking an items array — a screen cannot use one without the other. Owns its own open state unless `group` makes the set exclusive.",
+      "props": {
+        "title": "string — the header label",
+        "count / countLabel": "an optional count beside the title, with its accessible name",
+        "action": "an optional trailing control in the header",
+        "chevron": "'leading' | 'trailing'",
+        "defaultOpen": "boolean",
+        "disabled": "boolean",
+        "group": "string — pass the same name to sibling items to make the set exclusive"
+      },
+      "source": "zf-accordion.md — the section, split out from Accordion because the family is composed, not configured."
+    },
+    {
+      "name": "SidePanel",
+      "category": "overlay",
+      "status": "stable",
+      "use": "A right-hand drawer — supporting detail or a focused task beside the main content. Built on <dialog>, so the scrim, focus trap, Esc, inert page and focus return are native. If the user must answer before continuing it is a modal, not this (§7).",
+      "props": {
+        "open / onClose": "boolean / () => void",
+        "title": "string — names the dialog via aria-labelledby, and the close button",
+        "children": "ReactNode — Figma’s Body INSTANCE_SWAP; the scroll container",
+        "footer": "ReactNode — omit for Figma’s Footer=none",
+        "showClose": "boolean (default true)",
+        "tintedHeader": "boolean — a 1.12:1 change; §11 decision 3",
+        "modal": "boolean (default true) — false uses show(): no trap, no scrim"
+      },
+      "source": "zf-side-panel.md — 1 set (2 variants) + 1 loose component, 32 paints all role-bound. §2: the component is a modal panel with NO scrim — overlay/scrim was created for it and no overlay node exists anywhere in the file. §2.1: in Dark the panel is 1.21:1 against the composited scrim and the shadow makes it 1.20 — fixed with a border/control leading edge (5.67 / 6.85), the one border added rather than matched to Figma."
+    },
+    {
+      "name": "Nav",
+      "category": "navigation",
+      "status": "stable",
+      "use": "The left-hand navigation rail — a persistent, non-dismissible landmark holding a tree, in two widths. One per page. A parent discloses (<button>), a leaf navigates (<a>); collapsing changes the width, not the sequence.",
+      "props": {
+        "items": "NavNode[] — { id, label, href?, icon?, badge?, action?, children? }",
+        "sections": "{ header, items }[] — a titled group",
+        "currentId": "string — the ONE aria-current=\"page\"; ancestors are derived",
+        "collapsed / onCollapsedChange": "boolean / (next) => void",
+        "product": "{ name, mark? } — the brand band, which deliberately does not flip",
+        "label": "string (default \"Main\") — the landmark name"
+      },
+      "source": "zf-lhs-menu.md — 9 Figma components, 54 variants, 413 paints all role-bound. §3.2 the slot grid puts every label at x=48 with no arithmetic. §5.1 the focus treatment is the reference implementation for the system. Fixed: the toggle was not pinned (§3.4), the toggle had no focus state at all (§5.4, 2.4.7), the action plus was 20x20 (§3.2, 2.5.8). Flagged not changed: the rail edge at 1.08:1 (§2), the chevron at 2.57:1 on a pressed row (§4.4), the badge at 3.90:1 in Dark (§4.3), and brand/solid at 2.77:1 on the Dark rail in Blue only (§4.4)."
+    },
+    {
+      "name": "TopBar",
+      "category": "navigation",
+      "status": "stable",
+      "use": "The application top bar — a 48px dark chrome strip with the product lockup, a scoped search field and a right-hand account cluster. One banner per document. If it is about the current page it does not belong here (§7).",
+      "props": {
+        "product": "{ name, mark, wordmark?, href? }",
+        "search": "{ scope, value, onValueChange, onSubmit, onScopeOpen, scopeOpen? } — one object, not five props",
+        "org": "{ name, onOpen, open? } — optional",
+        "actions": "TopBarAction[] — { id, label, icon, filled?, onSelect }",
+        "account": "{ name, initials, onOpen, open? }",
+        "apps": "{ onOpen, open? }"
+      },
+      "source": "zf-top-bar.md — 8 Figma components, 21 variants, 80 paints all role-bound. §2: the apps glyph was on icon/default, a Light-mode role on dark chrome — 2.34 / 1.89 / 1.22, worsening as you press it; now chrome/text. §2.1: the bar had no bottom edge, 1.02:1 against the Dark page. §4.4: the + button’s edge fails at every rung (2.90 / 2.69 / 1.69), now ringed. §5: three of eight components had no focus state; all now have one."
+    },
+    {
+      "name": "PageHeader",
+      "category": "navigation",
+      "status": "stable",
+      "use": "The 64px band at the top of the content column — the page's <h1>, its context and its actions. Three page types as a discriminated union: list (the title is a view-switcher menu button), create, detail (back + parent link). NOT a second banner: place it inside <main>; the top bar owns that landmark.",
+      "props": {
+        "type": "'list' | 'create' | 'detail' — a discriminated union, not three options on one shape. A detail without `parent` does not compile",
+        "title": "string — the page's only <h1>. On `list` it lives inside the switcher button",
+        "views / onViewChange / viewMenuOpen / onViewMenuToggle": "list only — the switcher renders a real listbox, because aria-expanded over nothing is 4.1.2",
+        "parent / onBack": "detail only — { label, href }, rendered as a LINK above the h1, never an <h2>",
+        "actions": "HeaderAction[] — { id, label, icon, disabled?, onSelect }. No Count cap",
+        "cta": "{ label, icon?, disabled?, onSelect } — optional, at most one"
+      },
+      "source": "zf-page-header.md — 5 Figma components, 25 variants, 143 paints all role-bound, zero effects; the best-built family in the source. 41 of the 44 figures we re-derived reproduce to 0.01; the 3 that do not are our per-mode `border/control` reading BETTER in Dark (5.67, not the md's 3.58). §2: the list title's chip is 1.00:1 — a menu button not drawn at all. §9's 1px border/control is NOT taken: the reference draws bare text and a caret, the caret identifies the control at 4.32 (1.4.11's own escape), and the border pushed the title to 21 where §3.2's 14+6 arithmetic wants 20. Open decision 1 owns it. §4.4: the HOVER border is 2.65 / 2.23, the one state whose whole expression is the border and the one nobody measured; now border/control, which overshoots because the neutral ramp has nothing between 2.85 and 4.52. §3.4: the disabled CTA is 77 where every other state is 75, so the cluster shifts as it disables; a transparent 1px border at rest neutralises it. §3.5: nothing bounded a long title. §4.3: brand/solid has no edge against the band in Dark Blue — 2.95, where Dark Red clears at 3.46."
+    },
+    {
+      "name": "DetailsToolbar",
+      "category": "navigation",
+      "status": "stable",
+      "use": "The action row under PageHeader on a record. 40 tall, one tab stop, a rule between EVERY adjacent item, and the overflow packed at the end. Folds container-relative: labels hide before icons, then items fold into the overflow from the right.",
+      "props": {
+        "groups": "DetailsToolbarGroup[] — { id, label, items }. `label` is role=\"group\"'s name and IS the grouping; the separator is 1.31:1 and only its picture",
+        "label": "role=\"toolbar\"'s accessible name. Defaults to \"Record actions\"",
+        "overflow": "{ label?, expanded?, ref?, onSelect(foldedIds) } — the ⋯, sprung to the far end with ms-auto. Receives the ids that folded, so its menu can offer exactly those",
+        "items[].menu": "the action opens a menu — draws the caret and sets aria-haspopup",
+        "items[].disabled": "aria-disabled, NOT the disabled attribute: the item stays focusable and discoverable",
+        "hidden": "take the bar off the page WITHOUT unmounting it. The action bar replaces the record's chrome, not just its title, so the toolbar steps aside with the header — otherwise 'Record Payment' is on screen twice meaning two different things. Hidden rather than unmounted because the bar holds the roving-tabindex position and its measured natural widths"
+      },
+      "source": "zf-details-toolbar.md §2.29 — 16 raw nodes: a rectangle, two rotated LINEs, two actions drawn as bare icon-plus-text and an imported 18x18 overflow frame. All 16 hexes in §4.1 reproduce; every Light contrast figure with them, and our Dark pairs beat the md's single figures (icon 7.60 vs 6.79, focus ring 7.69 vs 4.32). §6.1: 'Edit' was a 44.95 x 17 text box with no padding, 29% short of 2.5.8's 24 and with nowhere to paint hover or focus — now 28 x 58. §4.3: a 1px OUTSIDE top stroke plus DROP_SHADOW 0 2 4 #D7DAEB @72% were two mechanisms for the two edges of one band; one 1px BOTTOM rule replaces both and survives forced-colors. §4.2's tint rejection reproduces at exactly 1.04:1 in Light and INVERTS in Dark, where sunken vs hover is 1.12 against the 1.07 we ship — we keep the untinted band anyway, because a bar tinted in one pane only is two components. The slot is 14 (`sm`), not §2's 16 — one value for the glyph, the caret and the ⋯, so nothing in the row is drawn at a different scale from its neighbour. It also lands the caret by arithmetic: caret-down's ink fills only 51% of its 16 viewBox, so a 14 slot draws a 7.1px arrow, matching the Bulk Actions caret's 7.5 from the ramp instead of a token. Every glyph is tone=\"inherit\" rather than §4.1's icon/default, so an icon is exactly its label's colour and therefore exactly every other icon's — 6.79 becomes 15.15, and a filled glyph stops reading heavier than a 1.25-stroked one for a second reason. The rule sits between every pair rather than at §3's three group boundaries, and owns ALL the space around it (mx-4, containers at gap-0) so the 8 either side cannot stack with a container gap into 12. §3's 1100/900/700 are viewport widths and this bar lives in a SplitView detail column behind 573px of chrome, so folding is ResizeObserver-driven on its own content box."
+    },
+    {
+      "name": "AppShell",
+      "category": "navigation",
+      "status": "stable",
+      "use": "The three regions every screen sits in — rail, bar, body. Supplies the <main> landmark (so a PageHeader inside it is not a second banner), the single scroll container, and a WCAG 2.4.1 skip link. Slots only: it composes nothing itself.",
+      "props": {
+        "nav": "ReactNode — the left rail, a <Nav>. Sibling of the bar, not its parent",
+        "topBar": "ReactNode — a <TopBar>, sticky inside the content column",
+        "children": "ReactNode — the page, rendered inside <main>",
+        "skipLabel": "string — the skip link's text. Defaults to 'Skip to content'"
+      },
+      "source": "Composed from zf-top-bar.md §3.1 and §11 decision 4 (the bar's 20+200 brand column IS the rail's 220 — placing the bar beside the rail enforces that instead of two numbers agreeing by intent), zf-page-header.md §9.1 (three bare page headers measured as three banner landmarks; scoped to <main>, zero), and WCAG 2.4.1 (a ~20-row rail on every page)."
+    },
+    {
+      "name": "SplitButton",
+      "category": "action",
+      "status": "stable",
+      "use": "One default action and a menu of its variants. TWO buttons, not one with a caret — the halves do different things, so two controls, two tab stops, two names.",
+      "props": {
+        "children": "the default action's label. Also names the trailing half",
+        "onSelect": "the leading half",
+        "entries": "MenuEntry[] the caret opens",
+        "icon": "§21.3's leading-icon slot",
+        "emphasis": "secondary (default) | primary. Secondary by default because a split PRIMARY puts two competing commitments in one control",
+        "size": "lg (default) | md | sm"
+      },
+      "source": "Queued in CLAUDE.md since the button family was built; zf-product-table.md §13's Add New Row is what needed it. The trailing half is named 'More <label> actions', built from the label: the leading half already speaks the label, and two adjacent controls with the same accessible name is a 4.1.2 defect — the same one the action bar's caret had. The seam is `join` plus -ms-px so the pair shares ONE hairline, with hover:z-1 so the live half draws its border over its neighbour rather than under it."
+    },
+    {
+      "name": "ProductTable",
+      "category": "data-display",
+      "status": "stable",
+      "use": "The editable line-item grid — every data cell is an input or a select, and rows are created, cloned, reordered and deleted while the form is filled in. NOT Table, which is read-only.",
+      "props": {
+        "title": "the section heading — 'Add Products'",
+        "columns": "ProductColumn[]. Exactly one has flex:true and it still needs a real min. A `kind: 'input'` column takes `format` — numeric for Qty and Discount, decimal for Rate — filtered through the SAME helper InputField uses, because a grid whose Qty accepts '3 boxes' produces a total of NaN and the first place anyone sees it is the totals card",
+        "rows / onRowsChange": "controlled. kind 'item' | 'group'",
+        "totals / onTotalInput": "TotalRow[] — static | editable | emphasis. Not three hard-coded rows",
+        "onAddRow / onAddGroup / onRowMenu / onConfigureColumns": "the affordances",
+        "titleTrailing": "a control on the heading's own line, at the far end — a tax-inclusive toggle, a units switch. It belongs to the TABLE: anything that changes what every cell MEANS goes here, and anything that changes one row goes in that row's ⋯. In the footer beside Add New Row it would read as another way to add something"
+      },
+      "source": "zf-product-table.md. THE HOST BODY NEEDS padding-inline: 20px 30px, not 20/20 — the card is the 12 columns and the lanes hang OUTSIDE it, reclaimed with negative margins, and a symmetric body clips the delete control by 10. §18.2: one box cannot both scroll and let children escape — hidden clips them, visible is not a scrollport, and clip auto COMPUTES to hidden auto (the coercion is on computed values, not syntax) — so the card paints the frame, an inner scrollport scrolls, and the lane controls are SIBLINGS positioned at calc(spacer + i*34). The spacer is 35 not 34, derived as row+1px, because the lane's top aligns with the card's border box while the head starts inside its 1px top border. §5.3: box-sizing AND padding-block:0 on every cell, or Chromium's UA td{padding:1px} plus content-box sizing renders rows at 37 and the card at 290. §4.2: under table-layout:fixed a <col> with no width gets the leftover INCLUDING NONE, so the flexible column renders at 0 — w-max + min-w-full + a real min. VERIFIED AGAINST OUR TOKENS: surface/raised aliases base/white in Light (same as surface/default) and neutral/1900 in Dark (same as surface/hover), so it can neither raise nor be told from a hover — the lift is a 1px primary/default inset shadow. Open item 47. text/placeholder is 2.85 exactly; surface/hover is 1.07 in Dark, so the lane controls appearing are what signals the hover. ONE PLACE THE MD CONTRADICTS ITSELF: §8.1 reveals the lane controls with a DESCENDANT selector on the row, and §17.1 then moves them out of the rows entirely — once they are siblings no selector on the row can reach them, so the hover is React state, which also keeps the tint and the controls from disagreeing."
+    },
+    {
+      "name": "ProductTotals",
+      "category": "data-display",
+      "status": "stable",
+      "use": "The totals card under a ProductTable — right-aligned, four grid columns wide. Exported separately because a document's totals are sometimes shown without the grid that produced them.",
+      "props": {
+        "rows": "TotalRow[] — { id, label, kind: static | editable | emphasis, amount, input? }. NOT three hard-coded rows: Tax, Adjustment and a final emphasised Total are just more entries",
+        "onInputChange": "(id, next) for the editable rows' 120px inputs"
+      },
+      "source": "zf-product-table.md §14. box-sizing: border-box is REQUIRED, not a nicety: with content-box the 16 padding and 1px border push a 33.333% card out to 476.33 — 34 wider than four columns — and because the card is right-aligned the whole overshoot lands on its LEFT edge, exactly where 'four columns wide' is supposed to be legible. Amounts are RIGHT-aligned here, unlike the grid (§4.1), because these are read and compared rather than typed. The editable row's input is 28 — chrome/button-sm, the FIFTH token in this system holding 28, which is the control-height problem §7 decision 2 names rather than a new one."
+    },
+    {
+      "name": "Table",
+      "category": "data-display",
+      "status": "stable",
+      "use": "The module list view — §2.24 Type 1. 36px header band, 44px rows, a 12px cell inset, rows separated by a rule and no cell boundaries. Columns are data: pass `columns` and `rows`, not markup. The grid variant (Type 2, a parent record and its breakdown) is not built.",
+      "props": {
+        "caption": "string — REQUIRED and visually hidden. 1.3.1: without it the table announces as '7 columns, 10 rows' and nothing else",
+        "columns": "TableColumn<Row>[] — { id, header, align?, sortable?, cell }. `align: 'end'` moves the header AND the data to the column's right edge",
+        "rows": "Row[]",
+        "rowKey": "(row) => string — stable identity, never the array index",
+        "sort / onSortChange": "controlled. Omit onSortChange and no column renders a sort control. aria-sort lands on the <th>",
+        "empty": "ReactNode — rendered in place of the body when rows is empty"
+      },
+      "source": "zf-design-cannon.md §2.24 — 164 nodes, 148 paints, 5 bound. §2.24.3: Type 1 had NO cell inset (text began 1.25px after the column boundary). §2.24.2: numbers right-aligned to the width of the HEADER'S TEXT, so renaming a column moved the data. §2.24.5: four body-text values 17.59 ΔE apart, and a header band at 1.02:1 — present in the file, absent on screen. All eight contrast figures recomputed against our primitives and all eight reproduce."
+    },
+    {
+      "name": "Avatar",
+      "category": "data-display",
+      "status": "stable",
+      "use": "A tinted circle carrying an initial, or a photo, at 24 / 40 / 60 / 100. The tint is DERIVED from the name, never chosen: the same person must be the same colour on every screen, and 1.4.1 only holds while the colour means identity rather than status.",
+      "props": {
+        "name": "string — REQUIRED. The accessible name, and what the tint is hashed from. 'A' is not a name (§2.22.9)",
+        "initials": "string — defaults to the first letter. Two fit without clipping",
+        "size": "'sm' | 'md' | 'lg' | 'xl' — 24 · 40 · 60 · 100",
+        "src": "string — a photo. Replaces the initial and drops the tint; §2.22.1's `image` fill, as the presence of a source rather than a seventh enum value",
+        "tint": "override the hash. For a legend or a picker only — per-instance in a product is what §2.22.8 warns about",
+        "admin": "boolean — the badge, at ALL FOUR sizes",
+        "ring": "boolean — the cut-out for stacked avatars. Defaults FALSE where Figma defaults true: a lone avatar has nothing to separate from"
+      },
+      "source": "zf-design-cannon.md §2.22. §2.22.1: Size(4) × Color(7) × is_image(2) = 56 combinations and 28 existed — `Color=None` and `is_image=yes` are the same statement twice, so the two axes are one. §2.22.2: cornerRadius written as 999 three times and 50 once, neither half the width; type identical at 40 and 60, so a 60px avatar carried a 40px avatar's initial. §2.22.3: `is_super_admin` declared on the set and drawn only at Medium — a boolean that silently no-ops on three sizes in four. §2.22.4: the one bound paint in the set pointed at a legacy Orange/1100, white at 3.99:1."
+    },
+    {
+      "name": "Menu",
+      "category": "overlay",
+      "status": "stable",
+      "use": "A floating list of commands, anchored to whatever opened it, with sub-menus. NOTHING in zf-design-cannon.md measures a dropdown menu — §2.15 Popover is a coach mark with a Nose pointer — so every value is borrowed from a measured neighbour and cited in the source, never invented.",
+      "props": {
+        "anchor": "HTMLElement | null — the element it hangs off. Focus returns here on Escape",
+        "open / onClose": "controlled",
+        "items": "MenuNode[] — { id, label, icon?, children?, onSelect?, disabled?, separatorBefore? }. `children` and `onSelect` are mutually exclusive: a branch is not a command",
+        "label": "string — REQUIRED. A role=menu with no name announces as 'menu'",
+        "align": "start | end (default). Which edge of the panel lines up with the anchor's. `end` is right for every ⋯ in the system; `start` is right for a trigger on the LEFT, where `end` would throw a 240px panel backwards across its own button. The viewport clamp applies either way",
+        "emphasis": "default | strong. `strong` accents the glyphs at rest (primary/default, 4.32 — 1.4.11 asks a graphic for 3:1) and fills the row under the pointer, label and glyph moving with it. The fill is the {family}/HOVER role, never /default: white on primary/default is 4.32 and fails 1.4.3's 4.5 for the 13px label on it, where primary/hover is 5.48 L / 8.62 D. A DANGER row fills danger/hover with danger/on-danger — 7.04 L / 8.26 D — so the one row that destroys something never answers the pointer in the same colour as the rest. Also widens the icon-to-label gap 8 -> 12"
+      },
+      "source": "The panel HUGS its rows between a 180 floor and a 320 ceiling, not §3.1's fixed 240 — which left 60px of gutter on the widest menu we ship. Panel radius radius/lg (8), rows radius/md (6); §3.1 says 12, and its own note records that as zf-popover's value rather than the source's 6. MENU_ROW declares NO gap, NO background and NO colour — a base that declares what a branch also declares hands the decision to the stylesheet's emission order, and it silently won both: .bg-transparent lands 1143 bytes after .bg-primary-hover and .text-text-default 988 after .text-danger-text, so the strong menu's active row had no fill (white glyph on white) and every danger label rendered in the default colour. Borrowed and cited, not measured: surface · border/control · radius/md · 13/20 rows at 4/12 from PageHeader's view listbox; shadow/popover, `fixed` + a measured anchor rect, and the roving-focus keyboard model from NavFlyout. THE THIRD FLOATING LIST in the repo — the rail's flyout and the page header's switcher are both private to their components; those two should fold into this once a real contract lands."
+    },
+    {
+      "name": "Modal",
+      "category": "overlay",
+      "status": "stable",
+      "use": "The dialog you DO something in — a form, a table, a wizard step. Three regions (header 56, body, footer 72), four widths, flush to the top edge with square top corners, actions on the body's own left margin, and the body is the only scroller. A native <dialog> opened with showModal().",
+      "props": {
+        "open / onRequestClose": "controlled. RETURN FALSE TO VETO — §5: 'onClose says it happened, onRequestClose says it was asked for', and a dialog that cannot refuse cannot protect a half-filled form",
+        "title": "string — REQUIRED, the visible <h2> and the accessible name via aria-labelledby",
+        "width": "'sm' | 'md' | 'lg' | 'xl' — 500 / 600 / 700 / 900",
+        "children": "the body, the only thing that scrolls",
+        "primaryAction / secondaryAction": "{ label, onSelect, disabled? }",
+        "showClose": "hiding it obliges a labelled dismiss in the footer — 2.1.2",
+        "inset": "away from the top edge, which rounds all four corners"
+      },
+      "source": "zf-modal.md §2.27 — 17 raw nodes, no auto-layout, NOT ONE bound paint, all three text nodes unstyled. §7.1: the close target is 8x8, 64px² against 576, missing 89% of its area on the only exit a pointer user has. §1.1: the body runs 74px UNDER its own footer and rendered correctly only because the footer painted over it. Three nested drop shadows; #EBEAF2 drawing all three borders at 1.19:1. §4.4, unfixable here: the dialog is 3.23:1 against the scrimmed page in Light and 1.21:1 in Dark, and nothing available reaches 3:1 — border/strong is 2.88 on our tokens, better than the md's 2.36 and still short. All five rebuild figures and both composited scrim hexes reproduce exactly. Distinct from §2.14's zf-popup-modal, which tells rather than does and is not built."
+    },
+    {
+      "name": "ColumnConfig",
+      "category": "overlay",
+      "status": "stable",
+      "use": "Which columns a table shows and in what order. A Modal holding a draft list: checkbox = visible, drag handle or arrow keys = order, Save commits and Close discards.",
+      "props": {
+        "open / onClose": "controlled. onClose discards the draft",
+        "items": "ColumnConfigItem[] — { id, label, visible, locked? }. `locked` cannot be hidden or moved",
+        "onSave": "(next) => void. The dialog does not close itself",
+        "title": "defaults to 'Rearrange the Columns'"
+      },
+      "source": "NOT MEASURED. §2.24.2 specifies the trigger — 'a 60px cell holding icon / table-config' — and nothing measures the dialog behind it or any reorder list in the system. The shell is Modal (§2.14, measured); the rows borrow Checkbox and the menu's 32px rhythm; the drag behaviour is invented. Drag is the pointer's shortcut and never the mechanism: the handle is a real button in the tab order and the arrow keys move rows, because a drag-only reorder is a 2.1.1 failure."
+    },
+    {
+      "name": "ActionBar",
+      "category": "navigation",
+      "status": "stable",
+      "use": "What replaces the page header while rows are selected. 48px, role=toolbar, one tab stop. Slots: a labelled primary, a JOINED icon trio, named actions that collapse into a ⋯ menu, a live count, and a dismiss pair. The caller owns the swap — see §12: one fixed-height cell, the header hidden not unmounted, focus never crossing.",
+      "props": {
+        "count / total": "numbers. `Scope=all` is DERIVED from count >= total, not asked for",
+        "primary": "the one action they came for",
+        "iconActions": "wordless actions, max 4, rendered joined at -1px",
+        "actions": "named actions. Past the width budget they move into ⋯",
+        "maxVisible": "the ceiling; the ResizeObserver only lowers it",
+        "onClear": "Escape, the ✕, and clearing the last row",
+        "label": "(n, all) => string",
+        "density": "default | compact. `compact` is the reference bar for a narrow column: select-all · Bulk Actions ▾ · rule · count · ✕, with the primary action, the icon trio and every named action collapsed into that one menu. It subsumes maxVisible and drops the Esc hint (the key still works — the document listener does not know about density)",
+        "onToggleAll": "(next: boolean) => void — renders the select-all checkbox at the head of the compact bar and receives the state it should move TO. Its own checked/indeterminate state is DERIVED from count vs total, never passed, so the tick cannot disagree with the number beside it"
+      },
+      "source": "zf-action-bar.md §2.26 — a 37-node group of raw rectangles, no component, no auto-layout, NO bound paint. §2: the count is 4.39:1, a 1.4.3 fail on the one number the bar exists to report. §4.2: 'Selected' in pure #000000 (19.32 ΔE), the close glyph in #FE4242 (30.75 ΔE, destructive red on a control that destroys nothing), button strokes at 1.45:1, and three stacked shadows the first of which is a 1px hard-edged outline. §10 defect 5: two controls at two different y, NEITHER centring in a 48px bar. All six rebuild contrast figures and all three ΔE values reproduce against our primitives."
+    },
+    {
+      "name": "PageChrome",
+      "category": "navigation",
+      "status": "stable",
+      "use": "The cell a PageHeader and an ActionBar share. One fixed block-size equal to the taller (64 vs 48), the header hidden rather than unmounted so it keeps its state, and no autoFocus anywhere — focus must not cross the swap.",
+      "props": {
+        "children": "the <PageHeader>. Always rendered; hidden while `bar` is present",
+        "bar": "the <ActionBar>, or nothing. Present means a selection exists"
+      },
+      "source": "zf-action-bar.md §12 — 'the first component that cannot be specified without saying something about the page around it'. Rule 1: without the fixed cell the table jumps 16px on the first click. Rule 2: unmounting the header throws away the view switcher and a half-typed search. Rule 3: moving focus on a value change is 3.2.2, and §7 calls it the most common bug in this pattern."
+    },
+    {
+      "name": "MiniList",
+      "category": "navigation",
+      "status": "stable",
+      "use": "The left column of a split view — a 353px panel with a toolbar that does not scroll and a listbox that does. A NAVIGATION control, not a list of links: selection drives a route and must never scroll the list or lose its position. Rows are a fixed 99 so long lists can be virtualised.",
+      "props": {
+        "label": "string — names the listbox",
+        "items": "MiniListItem[] — { id, name, amount?, meta?, status?, statusVariant? }. `status` is the badge's text and `statusVariant` is which StatusBadge draws it. `meta` caps at three: past that it wraps and the row stops being 99",
+        "activeId / onActivate": "the record being READ — the route",
+        "selection": "{ selected, onChange } — the records being ACTED ON. Present means checkboxes; ticking one must not navigate",
+        "views / viewId / onViewChange": "the toolbar switcher",
+        "onCreate": "the primary + in the toolbar",
+        "moreEntries": "MenuEntry[] for the ⋯",
+        "bar": "an <ActionBar density=\"compact\"> while a bulk selection exists. It belongs on the same side as the checkboxes that filled it: the selection is a fact about THIS list, and putting its bar in the detail column makes the user look away from what they are ticking. PageChrome's three rules hold — the 56px cell never changes height, the toolbar is hidden rather than unmounted so the view switcher keeps its state, and there is no autoFocus anywhere (3.2.2 fires on every checkbox click)"
+      },
+      "source": "zf-mini-list.md §2.28 — 75 raw nodes across two boards, one a #D9D9D9 placeholder the panel was drawn on. §4.4: the status is #00B050 at 12px, 2.87:1, a 1.4.3 fail on the field that says what state the record is in. It is now a StatusBadge, whose worst pairing is 5.80 — the coloured Text it replaced only reached 4.52, and 4.01 on the selected row. The separator is drawn THREE ways and there are 24 unstyled text nodes at five sizes, one of them 15.75/22.05 — a scale artefact, not a size. All nine contrast figures reproduce. THE ACTIVE ROW IS surface/hover, not surface/selected: that role is 1.13 Light and 1.02 Dark, where the selected row is fractionally DARKER than its neighbours and reads as receding. hover is 1.08 / 1.07, so the Dark pane gains. The 2px primary leading edge is gone; the active row's own hover steps to surface/pressed so pointing at it still gives feedback. 99 = 12 + 20 + 6 + 16 + 10 + 22 + 12 + 1, the 22 being the badge."
+    },
+    {
+      "name": "SplitView",
+      "category": "navigation",
+      "status": "stable",
+      "use": "The two-column detail view — a MiniList on the left, the record it points at on the right. Each column scrolls on its own; neither scrolls the other.",
+      "props": {
+        "list": "the left column — a <MiniList>. Owns its own width and its own edge",
+        "children": "the record. Gets min-w-0 and its own scroller"
+      },
+      "source": "No md on disk. Three declarations, each a bug already paid for elsewhere: min-h-0 on the row (without it both columns grow, the PAGE scrolls, and the mini list's toolbar leaves the screen); min-w-0 on the detail column (without it a wide table sets min-content width and shoves the fixed 353px list off the left edge, where there is no way to scroll back to it); and no knowledge of the list's width or edge, which MiniList owns. zf-mini-list.md §5 is the requirement it protects — 'selecting a row does not re-render, scroll, or lose its position'."
+    }
+  ]
+}

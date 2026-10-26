@@ -1,0 +1,831 @@
+/* ============================================================================
+   LAYER 1b — SCALES (type, weight, space, radius, elevation)
+   ----------------------------------------------------------------------------
+   The second of the two files allowed a raw value. Colour lives in
+   primitives.css; every dimension in the system lives here.
+
+   Source: design-refs/zf-scales.md. Hand-authored, unlike the four colour
+   files — 40 values is inside what a person can copy reliably, and there is no
+   alias layer to verify against. What guards it instead is rule 9 in
+   scripts/check-boundaries.mjs: every retired value is rejected, and a second
+   line-height at one size fails unless declared with a reason.
+
+   ── TWO BLOCKS, AND WHY ─────────────────────────────────────────────────────
+   `:root` holds the values under their PUBLIC names — `--zf-space-4`,
+   `--zf-radius-md` — which is the contract zf-scales.md states, and the same
+   `--zf-` shape the colour layer already uses for roles. One prefix, every ZF
+   token, greppable and visible in devtools under one heading.
+
+   `@theme inline` then maps them onto Tailwind's namespaces so the utilities
+   exist: `p-4`, `rounded-md`, `text-body`, `font-medium`. `inline` matters —
+   without it Tailwind emits a SECOND custom property per token and every value
+   has two names, which is the drift this file exists to prevent. With it there
+   is exactly one variable and the utility points straight at it.
+
+   So: add a value to `:root`, map it in `@theme inline`. Never only one.
+   ========================================================================= */
+
+:root {
+  /* ── Typeface ───────────────────────────────────────────────────────────────
+     Inter throughout, at FOUR weights. `Semibold` (one word) is a Figma-side
+     spelling of Semi Bold and not a fifth weight — zf-scales.md "Retired". */
+  --zf-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --zf-font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* ── Weight — its own axis, 4 values ────────────────────────────────────────
+     "Every size exists in every weight" — 9 x 4 = 36 styles. So weight is a
+     separate token group and a separate class, NOT part of the size role.
+     `zf/body/medium` in Figma is `text-body font-medium` here. */
+  --zf-font-weight-regular: 400;
+  --zf-font-weight-medium: 500;
+  --zf-font-weight-semibold: 600;
+  --zf-font-weight-bold: 700;
+
+  /* ── Type scale — 9 sizes, zf-scales.md "Font sizes" ────────────────────────
+     Chosen from 1,306 measured text nodes so the largest number did not move.
+
+     THE LINE-HEIGHT IS PART OF THE SIZE, not a separate choice. 13px carried
+     five line-heights in the source — 20, 20.8, AUTO, 21, 16 — and 20.8 is
+     ambiguous by construction, being both 13 x 1.6 and 16 x 1.3.
+
+     No weight here on purpose. A weight on the size token would fuse the two
+     axes back together, and would also make the cascade decide between
+     `text-display` and `font-medium` by stylesheet order. Text.tsx emits both. */
+
+  --zf-text-display: 40px;                 /* 1.20 */
+  --zf-text-display-line-height: 48px;
+
+  --zf-text-title-lg: 24px;                /* 1.33 */
+  --zf-text-title-lg-line-height: 32px;
+
+  --zf-text-title: 20px;                   /* 1.40 */
+  --zf-text-title-line-height: 28px;
+
+  --zf-text-heading: 18px;                 /* 1.33 */
+  --zf-text-heading-line-height: 24px;
+
+  --zf-text-subheading: 16px;              /* 1.50 */
+  --zf-text-subheading-line-height: 24px;
+
+  /* 13/20 is 72% of all text in the system — 682 nodes at regular alone. */
+  /* 14/20 — the tab label, and a RETIRED size re-entered on purpose (see
+     RETIRED_EXCEPTIONS in scripts/check-boundaries.mjs). The ramp jumps 13 to 16
+     and a tab sits between them: at 13 it reads as body text that happens to be
+     clickable, at 16 it competes with the section heading beside it.
+
+     On the type scale rather than in a chrome token, so `Text` can express it,
+     `size` x `weight` still composes, and the one-line-height-per-size rule
+     still applies to it. 20 is body's leading; a 40-tall tab centres it. */
+  --zf-text-body-lg: 14px;                 /* 1.43 */
+  --zf-text-body-lg-line-height: 20px;
+
+  --zf-text-body: 13px;                    /* 1.54 */
+  --zf-text-body-line-height: 20px;
+
+  --zf-text-body-sm: 12px;                 /* 1.33 */
+  --zf-text-body-sm-line-height: 16px;
+
+  --zf-text-label: 11px;                   /* 1.45 */
+  --zf-text-label-line-height: 16px;
+  --zf-text-label-letter-spacing: 2%;
+
+  --zf-text-caption: 10px;                 /* 1.20 */
+  --zf-text-caption-line-height: 12px;
+  --zf-text-caption-letter-spacing: 2%;
+
+  /* ── The one case variant, which is not a weight ────────────────────────────
+     `overline` is a complete style: 11 / 17.6 Semi Bold +0.6px UPPER. It is the
+     only non-integer line-height and the only pixel tracking in the scale, kept
+     exactly as drawn so no table or column header row moves.
+
+     It is also the one place the "one line-height per size" rule bends: 11px
+     carries 16 for `label` and 17.6 here. Upper-case text has no descenders and
+     legitimately takes different leading, so the rule is one line-height per
+     size AND CASE. Declared as an exception in scripts/check-boundaries.mjs
+     rather than left to trust. Open item 39. */
+  --zf-text-overline: 11px;                /* 1.60 */
+  --zf-text-overline-line-height: 17.6px;
+  --zf-text-overline-letter-spacing: 0.6px;
+
+  /* ── Spacing — 2px base, named by STEP not by pixel ─────────────────────────
+     Measured across 2,021 auto-layout frames: 2, 6 and 10 account for 1,020
+     uses and none is a multiple of 4. It is a 2px base, 4px steps past 12.
+     `space-4` is 8px because 4 x 2 = 8, so a future density change rescales
+     without renaming a token. */
+  --zf-space-0: 0px;
+  --zf-space-1: 2px;
+  --zf-space-2: 4px;
+  --zf-space-3: 6px;
+  --zf-space-4: 8px;
+  --zf-space-5: 10px;
+  --zf-space-6: 12px;
+  --zf-space-8: 16px;
+  --zf-space-10: 20px;
+  --zf-space-12: 24px;
+  /* Step 15. A RETIRED spacing value, re-entered by declaration (see
+     RETIRED_EXCEPTIONS in scripts/check-boundaries.mjs) — and the one retired
+     value that was never off the scale to begin with: step N is 2N px, so 15 is
+     legal arithmetic that had simply never been written down.
+
+     THAT IS THE TEST for which escape a retired value gets. A value used AS
+     SPACING that fits `2N` belongs on the scale. A value that does not fit the
+     ramp's own logic — radius 10 on an enumerated 2/4/6/8/12/16, a 14px
+     checkbox box, a 7.5 caret slot — is component geometry and gets a named
+     `--zf-chrome-*` token beside the ramp instead. */
+  --zf-space-15: 30px;
+  --zf-space-16: 32px;
+  --zf-space-20: 40px;
+
+  /* ── Icon slots ─────────────────────────────────────────────────────────────
+     The GLYPH is authored at 16 (md §1.7); the SLOT is a per-component
+     decision — five components instance at 14. Open item 13.
+     Not in zf-scales.md; named here because a slot is a dimension and this is
+     where dimensions live. */
+  /* CONTROL DECORATION, not a glyph slot — the one value off the xs·sm·md·lg·xl
+     ramp, and it is off it deliberately rather than as resize residue.
+
+     `caret-down-bold` has a 24 viewBox and its ink very nearly fills it, so the
+     slot IS the arrow: at `xs` the arrow is ~12 wide, which is a glyph sitting
+     beside a label rather than a caret hanging off a control. 7.5 is the drawn
+     width. Half a pixel, and it has to be: the whole point of the value is that
+     it is not on a 2px scale, which is also why it is a named token — nothing
+     under `--zf-space-*` can hold it. */
+  --zf-icon-caret: 7.5px;
+  --zf-icon-xs: 12px;
+  --zf-icon-sm: 14px;
+  --zf-icon-md: 16px;
+  --zf-icon-lg: 20px;
+  --zf-icon-xl: 24px;
+
+  /* ── Fixed chrome dimensions ────────────────────────────────────────────────
+     Also ours rather than the doc's: each is a single measured constant that is
+     not on the 2px step scale, so it becomes a named token instead of an
+     arbitrary value at the call site. */
+  --zf-chrome-rail: 220px;                 /* md §2.20.6 */
+  --zf-chrome-rail-collapsed: 72px;
+  /* 48, and the bar's box is 48 too. There used to be a second `-box` token at
+     49, because zf-top-bar.md §2.1's bottom edge was additive: at 48 with
+     border-box a 1px border ate a pixel of interior, clipping the full-bleed
+     48px tiles to 47 and landing every inset on a half-pixel (search y 5.5,
+     actions 7.5). That edge is gone — §2.1 records that Figma's bar carries no
+     stroke — so the arithmetic it was working around is gone with it, and the
+     bar's bottom now lines up exactly with the rail's 48px brand band. */
+  --zf-chrome-topbar: 48px;                /* md §2.21.5 */
+  --zf-chrome-topbar-brand: 200px;         /* = the rail's 220 minus the bar's 20 pad */
+  --zf-chrome-topbar-search: 300px;
+  /* 32, not the 36 §2.21.5 records. In the reference the search field and the
+     32px action buttons beside it are the SAME height — the field's top and the
+     `+` tile's top are one line — and at 36 it stands a rung taller than every
+     other control in the bar and reads oversized. 32 is also `space/16`, where
+     36 is off the step scale and had to be a named token for that reason. */
+  --zf-chrome-topbar-field: 32px;
+  --zf-chrome-topbar-action: 32px;
+  --zf-chrome-topbar-tile: 48px;
+  /* Figma's rule is 1x26 in a 36 field — a 5px inset top and bottom. The inset
+     is the part that transfers, so at 32 the rule is 22. Keeping 26 would leave
+     3px and draw a near-full-height divider. */
+  --zf-chrome-topbar-rule: 22px;
+  --zf-chrome-topbar-divider: 20px;
+  --zf-chrome-topbar-badge: 16px;          /* the bell's count disc — min-width, so 99+ grows */
+  --zf-chrome-org-label: 20ch;             /* §5.4 — Figma is HUG, truncation DISABLED */
+  --zf-chrome-page-header: 64px;           /* md §2.23.2 */
+  /* md §2.24.2 / §2.24.3 — the list table. 36 is one header height replacing the
+     source's 35 and 33; 44 is Type 1's row, kept exactly. Neither is on the 2px
+     spacing scale, so both are named here rather than becoming arbitrary values
+     at the call site. The 12px cell inset IS on the scale (`space/6`) and is not
+     a token: §2.24.3 records the source having NO inset at all — text began
+     1.25px after the column boundary — and 12 as the smallest value that stops a
+     left-aligned cell touching its edge once a fill sits behind it. */
+  /* SQUARE, and 36 rather than the 60 §2.24.2 measures: it is the header band's
+     own height, so the control is a square on the band rather than a number
+     someone picked. 60 reserved 24px of nothing across every row. */
+  --zf-chrome-table-config: 36px;
+  --zf-chrome-table-head: 36px;
+  --zf-chrome-table-row: 44px;
+  /* md §2.22.5 — the avatar. 24 and 40 are on the spacing scale; 60 and 100 are
+     not, so all four are named here rather than two of them being steps and two
+     being chrome. The radius is size/2 at every size, which is `radius/full`:
+     §2.22.2 found `cornerRadius` written as 999 on three sizes and 50 on the
+     fourth, "and neither is half the width — both render as a circle at the size
+     they were drawn; neither survives a resize".
+
+     The badge is a THIRD of the diameter, not the source's half, and at 24 it is
+     an 8px dot with no glyph: a crown drawn at 5px is a smudge, so the mark is
+     dropped and the colour carries it. A deliberate stop, not an omission. */
+  /* zf-menu.md §3.1 — the panel is 240 FIXED, not `max-content`. Left to hug it
+     measured 180.00, 204.50 and 201.53 on three different sets of labels, two of
+     them fractional, so every row edge and glyph landed on a half pixel. The row
+     is 240 − 4 − 4 = 232 and the label 160 before it truncates. */
+  /* A task dialog takes the SIDE PANEL's width. Both are "a scrollable column of
+     controls beside the content", and md §2.14.2 rejects the source's 800 x 600
+     outright — every variant was FIXED while its contents hugged, one carrying
+     260px of empty white. Inventing a second number for the same job is how a
+     system ends up with two of everything. */
+  --zf-chrome-action-bar: 48px;           /* zf-action-bar.md §3.1 */
+  /* zf-modal.md §3.1 — four widths, and §3.3's two bands. 56 is
+     `space/6 + the 32px close + space/6`, sized by the CLOSE rather than by the
+     title because the close is the taller child; 72 is `space/10 + 32 + space/10`. */
+  --zf-chrome-modal-sm: 500px;
+  --zf-chrome-modal-md: 600px;
+  --zf-chrome-modal-lg: 700px;
+  --zf-chrome-modal-xl: 900px;
+  --zf-chrome-modal-header: 56px;
+  --zf-chrome-modal-footer: 72px;
+  /* zf-mini-list.md §2 — the split view's left column. §8 decision 1 asks
+     whether 353 is a number or a token: it is on no scale the system has, and
+     `zf-sidebar` is 460 with nothing relating them. Both belong to a LAYOUT
+     scale — column widths, panel widths, shell regions — which is ZF-SHELL.md's
+     job, and that file is still a stub. Named here until it exists.
+
+     99 = 12 + 20 + 6 + 16 + 10 + 22 + 12 + 1, every term a token and the
+     trailing 1 the separator the row owns:
+
+         12  space/6      block padding
+         20  body         the name line (13/20)
+          6  space/3      to the meta strip
+         16  body-sm      the meta line (12/16)
+         10  space/5      to the status
+         22  chrome/badge THE STATUS BADGE — was 16, a body-sm text line
+         12  space/6      block padding
+          1               the separator
+
+     It was 93 while the status was a coloured `Text`. A `StatusBadge` is a
+     fixed 22 and the row has to grow with it: leaving 93 puts 6px of badge
+     through the separator into the row below, and because the height is FIXED
+     nothing catches it.
+
+     Fixed rather than left to add up, because §3 and §5 both rest on it: a mini
+     list is 40 rows on a laptop and 400 in a real account, and the virtualiser
+     needs a height it can multiply. The source drew 94 from a 14px pad and a
+     14px name, neither on any scale. */
+  --zf-chrome-mini-list: 353px;
+  --zf-chrome-mini-list-toolbar: 56px;
+  --zf-chrome-mini-list-row: 99px;
+  /* The detail view's label column. A record's fields are a two-column grid,
+     and the label column has to be ONE width down the whole list — ragged
+     labels put every value at a different x and the eye has nothing to run
+     down. 140 is a measured fit for the longest label the invoice record has
+     ("Balance due") at `body` weight-medium, plus the 20px gutter.
+
+     Not on the 2px scale and not pretending to be: it is a text-fitted width,
+     which is exactly what §1.6.3 says a named token is for. When ZF-SHELL.md
+     lands it moves there with the other two column widths. */
+  --zf-chrome-field-label: 140px;
+  /* zf-details-toolbar.md §2 — the action row under the page header on a
+     record. 40 = 5.5 + 28 + 5.5 + the 1px rule: the bar has no block padding,
+     the item is 28 and centred, and the rule is an INSIDE stroke on the BOTTOM
+     edge only. There is no top border — zf-page-header already carries a 1px
+     bottom stroke on all three of its variants, and two adjacent hairlines read
+     as one 2px line.
+
+     28 is the item, and it is exactly `chrome/button-sm`. That is not a
+     coincidence and it is §8 decision 1: a toolbar item IS a tertiary button,
+     an emphasis the Button family does not ship. Named separately until it
+     does, so promoting it later is a rename rather than a re-measure. */
+  --zf-chrome-details-toolbar: 40px;
+  --zf-chrome-details-toolbar-item: 28px;
+  --zf-chrome-details-toolbar-rule: 20px;
+  /* THE CHECKBOX AND RADIO BOX. Design decision, 28 Aug 2026 — it supersedes
+     zf-checkbox.md §3.1, which measures 12.
+
+     14 is NOT on the 2px step scale and cannot be: `spacing 14` is a RETIRED
+     value (zf-scales.md), and `npm run check` rejects it inside `--zf-space-*`
+     precisely so a component cannot quietly re-add it. A named chrome token is
+     the sanctioned route for geometry off the scale, and it keeps the number in
+     one place instead of in two component files.
+
+     It is also closer to the drawing than 12 was: §3.1 records that Figma's 1px
+     CENTER-aligned stroke renders the 12px box at 13 on screen, so the measured
+     12 was already a `box-sizing` artefact rather than what anyone saw. */
+  --zf-chrome-checkbox: 14px;
+  /* THE FLOOR, not the width. §3.1 fixes the panel at 240 and the panel now
+     hugs its rows instead — 240 was 60px of empty gutter on a menu whose
+     longest label is "Invoice Preferences".
+
+     A floor is still needed or a menu of short labels ("Void", "Clone") shrinks
+     to something that reads as a tooltip, and its rows stop being comfortable
+     targets. 180 is a judgement, not a measurement: it is about where a
+     two-word label plus a glyph stops looking like a panel. */
+  --zf-chrome-menu: 180px;
+  --zf-chrome-menu-max: 320px;
+  --zf-chrome-menu-h: 480px;
+  --zf-chrome-avatar-sm: 24px;
+  --zf-chrome-avatar-md: 40px;
+  --zf-chrome-avatar-lg: 60px;
+  --zf-chrome-avatar-xl: 100px;
+  --zf-chrome-avatar-badge-sm: 8px;
+  --zf-chrome-avatar-badge-md: 14px;
+  --zf-chrome-avatar-badge-lg: 20px;
+  --zf-chrome-avatar-badge-xl: 32px;
+  --zf-chrome-control: 34px;               /* input / stepper height, md §2.5.2 */
+  --zf-chrome-button-lg: 32px;             /* button heights, zf-button.md §2 */
+  --zf-chrome-button-md: 30px;             /* 30 and 28 are steps 15 and 14, */
+  --zf-chrome-button-sm: 28px;             /* neither of which is on the scale */
+  /* Toggle, zf-toggle.md §3. 30 / 18 / 14 and 24 / 14 / 10 — none on the 2px
+     step scale except 24 and 10. §3.1: the small size is NOT a uniform scale
+     (0.800 / 0.778 / 0.714 with padding fixed at 1.000), so both are declared
+     rather than one derived from the other. */
+  --zf-chrome-toggle-w: 30px;
+  --zf-chrome-toggle-h: 18px;
+  --zf-chrome-toggle-knob: 14px;
+  --zf-chrome-toggle-w-sm: 24px;
+  --zf-chrome-toggle-h-sm: 14px;
+  --zf-chrome-toggle-knob-sm: 10px;
+  /* zf-pill.md §9.2 — 20 characters OF LABEL. On the button this would also
+     have to pay for padding, border, icon and gap, leaving roughly 13, so it
+     belongs on the label span. `ch` because the budget is in characters. */
+  --zf-chrome-pill-label: 20ch;
+  /* zf-wizard.md §9.3 — a CONSTANT card width, so the card is not a function of
+     the title's font weight. §2.3: Figma's HUG card is 146 at Regular and 148 at
+     Semi Bold, so advancing a step shifts every tab after it by 2px. */
+  --zf-chrome-step-card: 10rem;
+  /* §3.3 — the vertical connector's resting length. Figma FIXES it at 30, which
+     freezes the step pitch at 10 + 30 + 10 = 50. This is a MINIMUM, so the
+     default reproduces Figma exactly and a wrapped label still stretches it. */
+  --zf-chrome-step-line: 30px;
+  /* zf-segmented.md §9.2 — space/5 MINUS the 1px border. `box-sizing:
+     border-box` only subtracts a border from a SPECIFIED dimension; the
+     segment's height (28px) absorbs it but its auto width does not. Padding 10
+     with a 1px border renders 102px against Figma's 100, and the track 203
+     against 199. 9 is off the 2px step scale, so it is a named token. */
+  --zf-chrome-segment-pad: 9px;
+  /* §3.1 — the segment is FIXED at 28 and the track simply hugs it, landing at
+     32 (= 2 + 28 + 2). The immunity to content comes from the segment, not from
+     a fixed track — which is the failure mode the wizard's step card has. Same
+     value as chrome-button-sm and deliberately its own token: they can diverge. */
+  --zf-chrome-segment: 28px;
+  /* `size="sm"` — the control is 24 OVERALL: 2 + 20 + 2, the same 2px inset as
+     the 32, so the concentric radii (8 outer, 6 inner) still hold exactly. The
+     segment's own 20 clears `body-sm`'s 16 line-height with its 1px transparent
+     border on each side and 1px to spare. */
+  --zf-chrome-segment-sm: 20px;
+  /* zf-input-stepper.md §3.2 — the control is FIXED 170 in Figma's Layout=top.
+     Without an explicit width, `align-self: stretch` on a flex child overrides
+     inline-flex and the control fills its container. */
+  --zf-chrome-stepper: 170px;
+  --zf-chrome-stepper-btn: 28px;      /* §3.1 — the button column's width */
+  --zf-chrome-stepper-btn-h: 17px;    /* §3.1 — 17 + 17 = the control's 34 */
+  --zf-chrome-stepper-label: 84px;    /* §3.3 — the inline label column */
+  /* zf-accordion.md §3.1 — the header's vertical padding. 11 is off-scale
+     (space/5 is 10, space/6 is 12) and load-bearing: 11 + 20 + 11 = the 42px
+     header. Named rather than inlined, per rule 1. */
+  --zf-chrome-accordion-y: 11px;
+  /* zf-side-panel.md §3.1 — 460 is a real specification and is used verbatim.
+     769 is NOT: it is the artboard height. A live drawer is pinned to the
+     viewport, so the height is 100dvh. Nothing here changes Figma's 769. */
+  --zf-chrome-side-panel: 460px;
+  --zf-chrome-side-panel-header: 50px;
+  --zf-chrome-side-panel-footer: 65px;
+  /* §3.2 / §11 decision 4 — the close TARGET. The glyph is 16; 2.5.8 measures
+     the target, and 28 clears the 24 minimum. Named for the `zf-icon-button`
+     the md proposes extracting, since the modal and banner need the same. */
+  --zf-chrome-icon-button: 28px;
+
+  /* zf-lhs-menu.md §3 — the navigation rail. 220 and 72 are Figma's INTERIOR
+     widths: the rail carries no edge there at all (§2), so the 1px edge added
+     here is additive. Declared at 220 it would eat a pixel of interior — rows
+     measure 199 not 200, and the collapsed rail's 8+56+8 gutter becomes 8/7. */
+  --zf-chrome-nav: 221px;
+  --zf-chrome-nav-collapsed: 73px;
+  --zf-chrome-nav-logo: 48px;
+  --zf-chrome-nav-row: 30px;             /* the 2.5.8 target — 30 >= 24 */
+  --zf-chrome-nav-row-collapsed-w: 56px;
+  --zf-chrome-nav-row-collapsed-h: 58px;
+  --zf-chrome-nav-bar: 40px;
+  --zf-chrome-nav-toggle: 40px;
+  /* §3.2 — THE SLOT GRID, the best structural idea in the file. Every row type
+     renders both slots, filled or empty, which is what lands the label at
+     10 + 14 + 24 = 48 with no per-row arithmetic. */
+  --zf-chrome-nav-chev-slot: 14px;
+  --zf-chrome-nav-icon-slot: 24px;
+  --zf-chrome-nav-iconbox: 42px;         /* 56 - 7 - 7, the collapsed icon box */
+  --zf-chrome-nav-pad-collapsed: 7px;    /* §3.5 — off the spacing scale, and load-bearing */
+  --zf-chrome-nav-flyout: 220px;
+  /* §9.5 / §11 decision 10 — the flyout draws radius 10, which ZF Radius does
+     not hold. It cannot come here either: `npm run check` rule 9 rejects it,
+     because zf-scales.md RETIRED 10. The flyout uses radius/xl (12), same
+     substitution the accordion's container made for the same reason. */
+  --zf-chrome-badge: 22px;                 /* status badge height, md §2.1.2 */
+  --zf-chrome-badge-max: 200px;            /* truncation ceiling, md §2.1.2 */
+
+  /* ── Radius — 7 steps ───────────────────────────────────────────────────────
+     `md` (6px) is the default: 371 uses, buttons and inputs.
+     Prefer `full` over `size / 2` — 999 always resolves to a capsule, where a
+     literal 50 is a circle at exactly 100px and a rounded rect everywhere else. */
+  /* zf-modal.md §3.2 — ADDED. `ZF Radius` ran xs 2 … full 999 with no zero step,
+     so "square this corner" was an unbindable raw 0: the one value in an
+     otherwise clean census that could not be a token. Same argument `space/0`
+     already won — a scale needs a way to say *deliberately none*, or every zero
+     is indistinguishable from a zero nobody thought about. */
+  /* THE SECTION CARD. Design decision, 28 Aug 2026.
+     10 is a RETIRED radius (zf-scales.md), and `npm run check` rejects it inside
+     `--zf-radius-*` on purpose — it was one of ten values that arrived with a
+     component instead of being chosen. Choosing it now does not make it a step:
+     the ramp stays 2 · 4 · 6 · 8 · 12 · 16, and this is a named role sitting
+     beside it, which is what §1.6.3 says off-scale component geometry gets.
+     Named for what it is, so a second card cannot pick 11. */
+  /* ZF-CREATE-PAGE.md §2 — the creation footer. 72 = space/10 either side of a
+     32 button. Named because it is a band height, not a gap. */
+  --zf-chrome-create-footer: 72px;
+
+  /* ZF-PRODUCT-TABLE.md §5 — the editable line-item grid.
+
+     34 is also `chrome/control`, and that is not a coincidence to be collapsed:
+     the cell's input fills the cell, so the row height and the input height are
+     the same measurement seen twice. Separate tokens because they are separate
+     decisions — change the input and the row should not follow.
+
+     THE SPACER IS 35, NOT 34, and it is derived rather than written: the lane's
+     top aligns with the card's BORDER box while the head row starts one pixel
+     lower, inside the card's 1px top border. §5.2 records a 34 here putting all
+     six lane controls 1px above their rows. `calc(row + 1px)` cannot drift. */
+  --zf-chrome-pt-row: 34px;
+  --zf-chrome-pt-spacer: calc(var(--zf-chrome-pt-row) + 1px);
+  --zf-chrome-pt-rail: 44px;
+  /* 7 is a retired SPACING value, and here it is not spacing: it is a grabber
+     made deliberately wider than the 1px line it sits on so it can be caught. */
+  --zf-chrome-pt-resizer: 7px;
+  /* §10 — the 4 × 30 pill that marks the boundary being dragged. */
+  --zf-chrome-pt-resizer-pill: 4px;
+  /* §4.2 — the flexible column's floor. Without a real min it renders at ZERO,
+     not at 80: under `table-layout: fixed` a `<col>` with no width gets the
+     leftover INCLUDING NONE. */
+  --zf-chrome-pt-flex-min: 80px;
+  --zf-chrome-pt-total-input: 120px;
+  --zf-chrome-pt-totals-min: 320px;
+
+  /* The room a form section's rule gets, above AND below. Design decision,
+     30 Aug 2026 — ZF-CREATE-PAGE.md §2 gives the section 32 of block-end
+     padding and leaves the space below to whatever follows.
+
+     25 is ODD, so it is not a step and never can be: this scale is `2N` and
+     every value on it is even. That makes it component geometry by the same
+     test as `chrome/card`'s 10 — a named role beside the ramp. 24 (`space/12`)
+     and 26 (`space/13`) are the on-scale neighbours if the 1px ever matters
+     less than the ramp does.
+
+     ONE token for both sides, because the two are one decision: a rule with 25
+     above and 32 below is not a divider, it is a divider that has slipped. */
+  --zf-chrome-form-divider-gap: 25px;
+
+  /* A SUB-PIXEL RULE. Half a device pixel at 1x, so the browser antialiases it
+     into something lighter than `border/divider` can be on its own — which is
+     the point: at 1px the role is already the lightest we have (1.20:1) and the
+     only way further down is thinner, not paler.
+
+     It is not on any scale and cannot be: every step here is a whole even
+     number. A named role beside the ramp, same as `chrome/card`'s 10.
+
+     Worth knowing it is a HINT, not a guarantee. On a 2x display it is one
+     device pixel and renders crisply; at 1x it is a blend and different engines
+     round it differently. Never carry information on it — `border/divider` at
+     1px is already decorative, and this is one step below that. */
+  --zf-chrome-hairline: 0.5px;
+
+  --zf-chrome-card: 10px;
+
+  /* THE TAB STRIP. No md on disk — measured off the reference.
+     No block-size token: the tab is its label plus `space/4` beneath, so the
+     strip follows the type scale instead of pinning a height that would have to
+     be re-measured every time the label size moved.
+
+     The SELECTED INDICATOR is 3, and it OVERLAPS the strip rule rather than
+     sitting above it: `bottom: -1px` puts its lower edge level with the rule's,
+     so the two are one line and the bar is 2 of visible mark plus the 1 it has
+     covered. A bar that stops on top of the rule leaves a hairline showing
+     under it and reads as two lines that failed to meet.
+
+     Radius `xs` (2) on the TOP corners only — the bottom two are inside the
+     rule and rounding them would let it show through. It was 1, which is a
+     RETIRED radius and needed a named token to hold it; 2 is on the ramp, so
+     the token is gone rather than left orphaned. */
+  --zf-chrome-tab-indicator: 3px;
+
+  --zf-radius-none: 0px;
+  --zf-radius-xs: 2px;
+  --zf-radius-sm: 4px;
+  --zf-radius-md: 6px;
+  --zf-radius-lg: 8px;
+  --zf-radius-xl: 12px;
+  --zf-radius-2xl: 16px;
+  --zf-radius-full: 999px;
+
+  /* ── Elevation ──────────────────────────────────────────────────────────────
+     Neither scale document defines an elevation scale — open item 13. These
+     four are the values actually drawn in the file, promoted to roles so a
+     fifth shadow cannot be invented per component. The shadow COLOUR is
+     unstated; a neutral black is used until design confirms it. */
+  --zf-shadow-raised: 0 1px 2px rgb(0 0 0 / 0.08);   /* selected segment, §2.10.4 */
+  /* #12141F, not pure black. zf-menu.md §3.1 records the drawn value as
+     `0 8 24 #12141F @ 12%` and calls this "zf-popover's exact shadow" — the same
+     near-black the drawer already uses. A pure-black shadow on a blue-cast
+     neutral palette reads slightly green where every other dark value does not. */
+  --zf-shadow-popover: 0 8px 24px rgb(18 20 31 / 0.12); /* popover, side panel, §2.15.5 */
+  /* THE PANEL EDGE IS A SECOND, INSET SHADOW — not a border. §3.1: Figma's
+     INSIDE stroke does not consume layout and a `box-sizing: border-box` CSS
+     border does. Measured at a 240px panel, `border: 1px` gives a 230px row and
+     a 158px label where §3.3 needs 232 and 160. This is the only construction
+     where the panel is 240, the row 232 and the label 160 at the same time.
+
+     It references a ROLE, so it flips with the pane — `border/default` is 1.31
+     Light and 1.26 Dark, and the elevation shadow is what actually separates the
+     panel from the page, exactly as it does for zf-popover. */
+  --zf-shadow-menu:
+    0 8px 24px rgb(18 20 31 / 0.12),
+    inset 0 0 0 1px var(--zf-color-border-default);
+  --zf-shadow-modal: 0 16px 48px rgb(0 0 0 / 0.16);  /* modal, date picker, §2.14.3 */
+  /* zf-side-panel.md §1 — Figma's exact recipe: offset (-8, 0), blur 32,
+     #12141F at 12%. The offset points LEFT, at the edge the panel came from,
+     which the doc frame is right to call out as correct reasoning. Was
+     rgb(0 0 0 / .12); corrected to the measured colour 2026-08-24. */
+  --zf-shadow-drawer: -8px 0 32px rgb(18 20 31 / 0.12);
+  /* §6.2 — the LEFTWARD tier, for a sticky column once its table is scrolled.
+     Same 8/24 as the overlay tier, thrown inline-start instead of down. */
+  --zf-shadow-sticky-start: -8px 0 24px rgb(18 20 31 / 0.12);
+  /* §9.1a — the LIFTED row. A border and not `surface/raised`, which aliases
+     `surface/default` in Light and `surface/hover` in Dark, so it can neither
+     raise nor be told apart from a hover. Inset, so lifting a row does not
+     resize it and shove every row below it down by two. Open item 47. */
+  --zf-shadow-pt-lifted: inset 0 0 0 1px var(--zf-color-primary-default);
+  /* §9 — the DROP TARGET: a 2px `primary/default` edge on the side the lift will
+     land. Inset shadows and not borders, for the same reason the lift is: a
+     border would add 2px to the row and shove every row below it down while the
+     pointer is still moving, so the target you were aiming at slides away. */
+  --zf-shadow-pt-drop-above: inset 0 2px 0 var(--zf-color-primary-default);
+  --zf-shadow-pt-drop-below: inset 0 -2px 0 var(--zf-color-primary-default);
+}
+
+/* ============================================================================
+   The Tailwind mapping. Every utility in the system resolves through here.
+   ========================================================================= */
+
+@theme inline {
+  --font-sans: var(--zf-font-sans);
+  --font-mono: var(--zf-font-mono);
+
+  /* `--font-weight-*: initial` first, for the same reason `--spacing: initial`
+     exists below: it removes Tailwind's thin / extralight / light / normal /
+     extrabold / black, so `font-thin` is a build error rather than a silent
+     off-scale weight. Four weights ship because four weights are drawn. */
+  --font-weight-*: initial;
+  --font-weight-regular: var(--zf-font-weight-regular);
+  --font-weight-medium: var(--zf-font-weight-medium);
+  --font-weight-semibold: var(--zf-font-weight-semibold);
+  --font-weight-bold: var(--zf-font-weight-bold);
+
+  --text-display: var(--zf-text-display);
+  --text-display--line-height: var(--zf-text-display-line-height);
+
+  --text-title-lg: var(--zf-text-title-lg);
+  --text-title-lg--line-height: var(--zf-text-title-lg-line-height);
+
+  --text-title: var(--zf-text-title);
+  --text-title--line-height: var(--zf-text-title-line-height);
+
+  --text-heading: var(--zf-text-heading);
+  --text-heading--line-height: var(--zf-text-heading-line-height);
+
+  --text-subheading: var(--zf-text-subheading);
+  --text-subheading--line-height: var(--zf-text-subheading-line-height);
+
+  --text-body-lg: var(--zf-text-body-lg);
+  --text-body-lg--line-height: var(--zf-text-body-lg-line-height);
+  --text-body: var(--zf-text-body);
+  --text-body--line-height: var(--zf-text-body-line-height);
+
+  --text-body-sm: var(--zf-text-body-sm);
+  --text-body-sm--line-height: var(--zf-text-body-sm-line-height);
+
+  --text-label: var(--zf-text-label);
+  --text-label--line-height: var(--zf-text-label-line-height);
+  --text-label--letter-spacing: var(--zf-text-label-letter-spacing);
+
+  --text-caption: var(--zf-text-caption);
+  --text-caption--line-height: var(--zf-text-caption-line-height);
+  --text-caption--letter-spacing: var(--zf-text-caption-letter-spacing);
+
+  --text-overline: var(--zf-text-overline);
+  --text-overline--line-height: var(--zf-text-overline-line-height);
+  --text-overline--letter-spacing: var(--zf-text-overline-letter-spacing);
+
+  /* `--spacing: initial` removes Tailwind's dynamic 0.25rem scale, so `p-7` is
+     a build error rather than a silent 28px off-scale value. md §1.6.3 traced
+     44 off-scale values in one component to exactly that scale leaking in. */
+  --spacing: initial;
+  --spacing-0: var(--zf-space-0);
+  --spacing-1: var(--zf-space-1);
+  --spacing-2: var(--zf-space-2);
+  --spacing-3: var(--zf-space-3);
+  --spacing-4: var(--zf-space-4);
+  --spacing-5: var(--zf-space-5);
+  --spacing-6: var(--zf-space-6);
+  --spacing-8: var(--zf-space-8);
+  --spacing-10: var(--zf-space-10);
+  --spacing-12: var(--zf-space-12);
+  --spacing-15: var(--zf-space-15);
+  --spacing-16: var(--zf-space-16);
+  --spacing-20: var(--zf-space-20);
+
+  /* Icon slots and chrome ride the spacing namespace so `w-icon-md` and
+     `h-topbar` exist. They are not spacing steps and are not named as if they
+     were — the step scale is `--zf-space-*` only. */
+  --spacing-icon-caret: var(--zf-icon-caret);
+  --spacing-icon-xs: var(--zf-icon-xs);
+  --spacing-icon-sm: var(--zf-icon-sm);
+  --spacing-icon-md: var(--zf-icon-md);
+  --spacing-icon-lg: var(--zf-icon-lg);
+  --spacing-icon-xl: var(--zf-icon-xl);
+
+  --spacing-rail: var(--zf-chrome-rail);
+  --spacing-rail-collapsed: var(--zf-chrome-rail-collapsed);
+  --spacing-topbar: var(--zf-chrome-topbar);
+  --spacing-topbar-brand: var(--zf-chrome-topbar-brand);
+  --spacing-topbar-search: var(--zf-chrome-topbar-search);
+  --spacing-topbar-field: var(--zf-chrome-topbar-field);
+  --spacing-topbar-action: var(--zf-chrome-topbar-action);
+  --spacing-topbar-tile: var(--zf-chrome-topbar-tile);
+  --spacing-topbar-rule: var(--zf-chrome-topbar-rule);
+  --spacing-topbar-divider: var(--zf-chrome-topbar-divider);
+  --spacing-topbar-badge: var(--zf-chrome-topbar-badge);
+  --spacing-org-label: var(--zf-chrome-org-label);
+  --spacing-page-header: var(--zf-chrome-page-header);
+  --spacing-table-config: var(--zf-chrome-table-config);
+  --spacing-table-head: var(--zf-chrome-table-head);
+  --spacing-table-row: var(--zf-chrome-table-row);
+  --spacing-action-bar: var(--zf-chrome-action-bar);
+  --spacing-modal-sm: var(--zf-chrome-modal-sm);
+  --spacing-modal-md: var(--zf-chrome-modal-md);
+  --spacing-modal-lg: var(--zf-chrome-modal-lg);
+  --spacing-modal-xl: var(--zf-chrome-modal-xl);
+  --spacing-modal-header: var(--zf-chrome-modal-header);
+  --spacing-modal-footer: var(--zf-chrome-modal-footer);
+  --spacing-mini-list: var(--zf-chrome-mini-list);
+  --spacing-mini-list-toolbar: var(--zf-chrome-mini-list-toolbar);
+  --spacing-mini-list-row: var(--zf-chrome-mini-list-row);
+  --spacing-field-label: var(--zf-chrome-field-label);
+  --spacing-details-toolbar: var(--zf-chrome-details-toolbar);
+  --spacing-details-toolbar-item: var(--zf-chrome-details-toolbar-item);
+  --spacing-details-toolbar-rule: var(--zf-chrome-details-toolbar-rule);
+  --spacing-checkbox: var(--zf-chrome-checkbox);
+  --spacing-hairline: var(--zf-chrome-hairline);
+  --spacing-form-divider: var(--zf-chrome-form-divider-gap);
+  --spacing-pt-row: var(--zf-chrome-pt-row);
+  --spacing-pt-spacer: var(--zf-chrome-pt-spacer);
+  --spacing-pt-rail: var(--zf-chrome-pt-rail);
+  --spacing-pt-resizer: var(--zf-chrome-pt-resizer);
+  --spacing-pt-resizer-pill: var(--zf-chrome-pt-resizer-pill);
+  --spacing-pt-flex-min: var(--zf-chrome-pt-flex-min);
+  --spacing-pt-total-input: var(--zf-chrome-pt-total-input);
+  --spacing-pt-totals-min: var(--zf-chrome-pt-totals-min);
+  --spacing-create-footer: var(--zf-chrome-create-footer);
+  /*  THE BLOCK PADDING THAT CENTRES ONE `body` LINE IN A CONTROL — (34 − 20) / 2
+      = 7. DERIVED, not written: a calc that self-corrects the day
+      `chrome/control` or the type scale changes, where Figma has to carry a
+      literal 7 in 34 instances.
+
+      Two consumers and one number, which is the point. `FormRow` uses it to put
+      the label's FIRST line on the control's centre line (§4); `Textarea` uses
+      it as its own block padding, so a one-line textarea is the same height as
+      an input and its first line sits exactly where an input's value does.
+      Two tokens here would let a textarea drift a pixel off the field above it
+      and nothing would catch it. */
+  --spacing-control-pad: calc((var(--zf-chrome-control) - var(--zf-text-body-line-height)) / 2);
+  --spacing-label-offset: var(--spacing-control-pad);
+  /*  BY REFERENCE, not by coincidence. The trailing control centres on the
+      label's line box, so this has to BE the label's line-height — pointing at
+      the same declaration means changing the tab's type size moves both. */
+  --spacing-tab-label: var(--zf-text-body-lg-line-height);
+  --spacing-tab-indicator: var(--zf-chrome-tab-indicator);
+  --spacing-menu: var(--zf-chrome-menu);
+  --spacing-menu-max: var(--zf-chrome-menu-max);
+  --spacing-menu-h: var(--zf-chrome-menu-h);
+  --spacing-avatar-sm: var(--zf-chrome-avatar-sm);
+  --spacing-avatar-md: var(--zf-chrome-avatar-md);
+  --spacing-avatar-lg: var(--zf-chrome-avatar-lg);
+  --spacing-avatar-xl: var(--zf-chrome-avatar-xl);
+  --spacing-avatar-badge-sm: var(--zf-chrome-avatar-badge-sm);
+  --spacing-avatar-badge-md: var(--zf-chrome-avatar-badge-md);
+  --spacing-avatar-badge-lg: var(--zf-chrome-avatar-badge-lg);
+  --spacing-avatar-badge-xl: var(--zf-chrome-avatar-badge-xl);
+  --spacing-control: var(--zf-chrome-control);
+  --spacing-button-lg: var(--zf-chrome-button-lg);
+  --spacing-button-md: var(--zf-chrome-button-md);
+  --spacing-button-sm: var(--zf-chrome-button-sm);
+  --spacing-toggle-w: var(--zf-chrome-toggle-w);
+  --spacing-toggle-h: var(--zf-chrome-toggle-h);
+  --spacing-toggle-knob: var(--zf-chrome-toggle-knob);
+  --spacing-toggle-w-sm: var(--zf-chrome-toggle-w-sm);
+  --spacing-toggle-h-sm: var(--zf-chrome-toggle-h-sm);
+  --spacing-toggle-knob-sm: var(--zf-chrome-toggle-knob-sm);
+  --spacing-pill-label: var(--zf-chrome-pill-label);
+  --spacing-step-card: var(--zf-chrome-step-card);
+  --spacing-step-line: var(--zf-chrome-step-line);
+  --spacing-segment-pad: var(--zf-chrome-segment-pad);
+  --spacing-segment: var(--zf-chrome-segment);
+  --spacing-segment-sm: var(--zf-chrome-segment-sm);
+  --spacing-stepper: var(--zf-chrome-stepper);
+  --spacing-stepper-btn: var(--zf-chrome-stepper-btn);
+  --spacing-stepper-btn-h: var(--zf-chrome-stepper-btn-h);
+  --spacing-stepper-label: var(--zf-chrome-stepper-label);
+  --spacing-accordion-y: var(--zf-chrome-accordion-y);
+  --spacing-side-panel: var(--zf-chrome-side-panel);
+  --spacing-side-panel-header: var(--zf-chrome-side-panel-header);
+  --spacing-side-panel-footer: var(--zf-chrome-side-panel-footer);
+  --spacing-icon-button: var(--zf-chrome-icon-button);
+  --spacing-nav: var(--zf-chrome-nav);
+  --spacing-nav-collapsed: var(--zf-chrome-nav-collapsed);
+  --spacing-nav-logo: var(--zf-chrome-nav-logo);
+  --spacing-nav-row: var(--zf-chrome-nav-row);
+  --spacing-nav-row-collapsed-w: var(--zf-chrome-nav-row-collapsed-w);
+  --spacing-nav-row-collapsed-h: var(--zf-chrome-nav-row-collapsed-h);
+  --spacing-nav-bar: var(--zf-chrome-nav-bar);
+  --spacing-nav-toggle: var(--zf-chrome-nav-toggle);
+  --spacing-nav-chev-slot: var(--zf-chrome-nav-chev-slot);
+  --spacing-nav-icon-slot: var(--zf-chrome-nav-icon-slot);
+  --spacing-nav-iconbox: var(--zf-chrome-nav-iconbox);
+  --spacing-nav-pad-collapsed: var(--zf-chrome-nav-pad-collapsed);
+  --spacing-nav-flyout: var(--zf-chrome-nav-flyout);
+
+  /* zf-side-panel.md §9.2 — Figma defines no motion, and "a drawer that appears
+     instantly reads as a layout shift rather than an arrival". The only motion
+     tokens in the system so far; a real motion scale is still an open item. */
+  --animate-panel-in: zf-panel-in 200ms ease-out;
+  --animate-scrim-in: zf-scrim-in 200ms ease-out;
+
+  /* zf-lhs-menu.md — the rail's motion. Figma defines none for this family; §9.2
+     adds a width transition and a chevron rotation, and a disclosure that snaps
+     open reads as a reflow rather than a reveal. */
+  --animate-nav-group-in: zf-nav-group-in 180ms ease-out;
+  --animate-nav-flyout-in: zf-nav-flyout-in 120ms ease-out;
+  /* zf-action-bar.md §9.2's own keyframe, verbatim: 120ms ease-out from 4px
+     above. The flyout's slides in from the LEFT, which is right for a panel
+     hanging off a rail and wrong for a bar that drops into the header's place. */
+  --animate-action-bar-in: zf-action-bar-in 120ms ease-out;
+  /* zf-modal.md §10.2 — OPACITY ONLY, no transform. `getBoundingClientRect()`
+     returns the TRANSFORMED box and the dialog's click-outside test reads it:
+     with a `translateY(-8px)` entry, a click 4px above the painted bottom edge
+     dismissed the dialog for the first 140ms. Measured rect.top across the
+     entry: −8, −8, −8, −5.1, −2.7, −0.9, 0. */
+  --animate-modal-in: zf-modal-in 140ms ease-out;
+  --spacing-badge: var(--zf-chrome-badge);
+  --spacing-badge-max: var(--zf-chrome-badge-max);
+
+  /*  §2 — 2 + 3 + 1 of the six columns a half owns, and the same shape across
+      all twelve for a full-span row. `fr` and not pixels, so a column stays a
+      pure twelfth of the content box at any width. NO GUTTER: the 30px inset
+      and the slack column do all the separating, and adding one would change
+      every number in §2's table. */
+  /* §2 — drag lane, card, delete lane. The CARD is the 12 columns; the lanes
+     hang outside it and the block reclaims the page margin with negative
+     inline margins. */
+  --grid-template-columns-pt: var(--zf-space-10) minmax(0, 1fr) var(--zf-space-15);
+
+  --grid-template-columns-form: 2fr 3fr 1fr;
+  --grid-template-columns-form-full: 2fr 9fr 1fr;
+
+  --radius-card: var(--zf-chrome-card);
+  --radius-none: var(--zf-radius-none);
+  --radius-xs: var(--zf-radius-xs);
+  --radius-sm: var(--zf-radius-sm);
+  --radius-md: var(--zf-radius-md);
+  --radius-lg: var(--zf-radius-lg);
+  --radius-xl: var(--zf-radius-xl);
+  --radius-2xl: var(--zf-radius-2xl);
+  --radius-full: var(--zf-radius-full);
+
+  --shadow-raised: var(--zf-shadow-raised);
+  --shadow-popover: var(--zf-shadow-popover);
+  --shadow-menu: var(--zf-shadow-menu);
+  --shadow-modal: var(--zf-shadow-modal);
+  --shadow-drawer: var(--zf-shadow-drawer);
+  --shadow-sticky-start: var(--zf-shadow-sticky-start);
+  --shadow-pt-lifted: var(--zf-shadow-pt-lifted);
+  --shadow-pt-drop-above: var(--zf-shadow-pt-drop-above);
+  --shadow-pt-drop-below: var(--zf-shadow-pt-drop-below);
+}
+
+@keyframes zf-panel-in { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes zf-scrim-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* The 0fr -> 1fr grid technique: a grid row cannot be animated to `auto`, but it
+   can be animated to a fraction, and a single 1fr row in an auto-height grid
+   resolves to the same max-content the natural layout would give. The <ul>
+   inside must carry `overflow-hidden` or it spills while the row is still 0. */
+@keyframes zf-nav-group-in {
+  from { grid-template-rows: 0fr; opacity: 0; }
+  to   { grid-template-rows: 1fr; opacity: 1; }
+}
+@keyframes zf-nav-flyout-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes zf-action-bar-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes zf-modal-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
