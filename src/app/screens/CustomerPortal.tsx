@@ -5,10 +5,10 @@ import {
   Stack, StatusBadge, Surface, Table, Tabs, Text, Textarea, Toggle,
 } from '@canon';
 import type { NavNode, TableColumn } from '@canon';
-import { ORGANISATION, advanceDue, applyAdvancePayment, received } from '../data/sales-orders';
+import { ORGANISATION, advanceDue, advanceStatus, applyAdvancePayment, received } from '../data/sales-orders';
 import type { AdvancePayment, OrderInvoice, SalesOrder } from '../data/sales-orders';
 import {
-  Address, LINE_COLUMNS, OrderPdf, OrderTotals, STATUS_TONE, customerOf, date, lines, money, round,
+  ADVANCE_TONE, Address, LINE_COLUMNS, OrderPdf, OrderTotals, STATUS_TONE, customerOf, date, lines, money, round,
 } from './SalesOrderDocument';
 import type { Line } from './SalesOrderDocument';
 import { PrototypeBar } from './PrototypeBar';
@@ -55,10 +55,9 @@ const NAV: NavNode[] = [
   { id: 'statements', label: 'Statements', icon: 'reports' },
 ];
 
-/** What a customer reads the order's state as. "Awaiting Advance" is theirs to act on. */
+/** What a customer reads the order's state as. The advance is a separate badge. */
 const PORTAL_STATUS: Record<SalesOrder['status'], string> = {
   Draft: 'Draft',
-  'Awaiting Advance': 'Awaiting Advance',
   Confirmed: 'Confirmed',
   Invoiced: 'Invoiced',
 };
@@ -273,6 +272,9 @@ function PortalOrder({ order, nextAdvance, onChange, onBack }: PortalOrderProps)
             <Inline gap={5} align="center">
               <Text as="h1" size="title">{order.number}</Text>
               <StatusBadge status={STATUS_TONE[order.status]}>{PORTAL_STATUS[order.status]}</StatusBadge>
+              {advanceStatus(order) ? (
+                <StatusBadge status={ADVANCE_TONE[advanceStatus(order)!]}>Advance {advanceStatus(order)}</StatusBadge>
+              ) : null}
             </Inline>
             <Text tone="secondary">
               Sales Order · {date(order.date)}{order.reference ? ` · Ref ${order.reference}` : ''}
@@ -339,10 +341,10 @@ function PortalOrder({ order, nextAdvance, onChange, onBack }: PortalOrderProps)
                 {due <= 0
                   ? `You have paid the ${money.format(got)} advance. It will be adjusted against your final invoice.`
                   : got > 0
-                    ? `You have paid ${money.format(got)} of the ${money.format(order.advance.amount)} advance. Pay the rest to confirm your order.`
+                    ? `You have paid ${money.format(got)} of the ${money.format(order.advance.amount)} advance. Pay the remaining amount when you are ready.`
                     : `${ORGANISATION.name} has requested ${order.advance.type === 'percent'
                       ? `${order.advance.value}% of the order total`
-                      : 'an advance'} before confirming this order. It will be adjusted against your final invoice.`}
+                      : 'an advance'} on this order. It will be adjusted against your final invoice.`}
               </Text>
               {got > 0 && due > 0 ? (
                 <Text size="body-sm" tone="tertiary" className="tabular-nums">
@@ -472,8 +474,8 @@ const MODES: { id: string; label: string; lead: string; body: string }[] = [
  * not an advance, and belongs on the invoice. Editing is a deliberate step
  * rather than an always-open field, so the default case stays one click.
  *
- * The order stays Awaiting Advance until the parts add up, and the order page
- * then asks for the remainder.
+ * The order stays Confirmed throughout; its advance reads Partially Paid
+ * until the parts add up, and the order page asks for the remainder.
  *
  * The modes are `Tabs`, not the reference's vertical list with glyphs: the
  * canon has no vertical selectable list yet, and the card-brand glyphs are not

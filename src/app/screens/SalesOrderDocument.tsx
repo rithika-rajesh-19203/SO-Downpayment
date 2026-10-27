@@ -4,7 +4,7 @@ import {
 } from '@canon';
 import type { StatusBadgeStatus, TableColumn } from '@canon';
 import { CUSTOMER_INFO, ORGANISATION, lineAmount, received } from '../data/sales-orders';
-import type { OrderLine, SalesOrder } from '../data/sales-orders';
+import type { AdvanceStatus, OrderLine, SalesOrder } from '../data/sales-orders';
 
 /**
  * THE SALES ORDER AS A DOCUMENT — formatting, totals and the PDF rendering.
@@ -16,7 +16,6 @@ import type { OrderLine, SalesOrder } from '../data/sales-orders';
 
 export const STATUS_TONE: Record<SalesOrder['status'], StatusBadgeStatus> = {
   Draft: 'draft',
-  'Awaiting Advance': 'pending',
   Confirmed: 'approved',
   Invoiced: 'success',
 };
@@ -29,6 +28,13 @@ export const date = (iso: string) => day.format(new Date(iso));
 export const round = (n: number) => Math.round(n * 100) / 100;
 
 /** How the advance was asked for, in words: "25% (₹2,496.00)". */
+/** The advance's own badge — a different fact from the order's status. */
+export const ADVANCE_TONE: Record<AdvanceStatus, StatusBadgeStatus> = {
+  Pending: 'pending',
+  'Partially Paid': 'in-progress',
+  Paid: 'success',
+};
+
 export function termsLabel(o: SalesOrder) {
   if (!o.advance) return 'Not requested';
   return o.advance.type === 'percent'
@@ -195,7 +201,7 @@ export function OrderPdf({ order }: { order: SalesOrder }) {
               <Text size="body-sm">
                 An advance of {money.format(order.advance.amount)}
                 {order.advance.type === 'percent' ? ` (${order.advance.value}% of the order total)` : ''} is
-                required before this order is confirmed. It will be adjusted against the final invoice.
+                requested on this order. It will be adjusted against the final invoice.
               </Text>
             </Surface>
           ) : null}

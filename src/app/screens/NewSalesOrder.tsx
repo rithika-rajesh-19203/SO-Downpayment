@@ -166,9 +166,8 @@ export function NewSalesOrder({ nextNumber, onCancel, onSave }: NewSalesOrderPro
       reference: values.reference ?? '',
       paymentTerms: values.terms ?? 'Net 15',
       location: 'Head Office',
-      //  An order that asks for money upfront is not confirmed until it arrives —
-      //  NetSuite holds the whole order on exactly this condition.
-      status: !send ? 'Draft' : advance ? 'Awaiting Advance' : 'Confirmed',
+      //  Sent is Confirmed, advance or not — the advance is tracked on its own.
+      status: send ? 'Confirmed' : 'Draft',
       lines: items
         .filter((r) => r.kind === 'item' && r.values?.item)
         .map(toLine),

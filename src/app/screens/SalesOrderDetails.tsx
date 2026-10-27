@@ -8,11 +8,11 @@ import type {
   DetailsToolbarGroup, MenuEntry, MiniListItem, StatusBadgeStatus, TableColumn,
 } from '@canon';
 import {
-  DEPOSIT_ACCOUNTS, PAYMENT_MODES, advanceDue, applyAdvancePayment, received,
+  DEPOSIT_ACCOUNTS, PAYMENT_MODES, advanceDue, advanceStatus, applyAdvancePayment, received,
 } from '../data/sales-orders';
 import type { AdvancePayment, OrderInvoice, SalesOrder } from '../data/sales-orders';
 import {
-  Address, LINE_COLUMNS, OrderPdf, OrderTotals, STATUS_TONE, customerOf, date, day, lines, money, round, termsLabel,
+  ADVANCE_TONE, Address, LINE_COLUMNS, OrderPdf, OrderTotals, STATUS_TONE, customerOf, date, day, lines, money, round, termsLabel,
 } from './SalesOrderDocument';
 import type { Line } from './SalesOrderDocument';
 
@@ -97,8 +97,8 @@ function nextStep(o: SalesOrder): Step {
   if (o.advance && due > 0) {
     return {
       message: got > 0
-        ? `${money.format(got)} of the ${money.format(o.advance.amount)} advance is received. Record the remaining ${money.format(due)} to confirm this order.`
-        : `This order needs an advance of ${money.format(o.advance.amount)} before it is confirmed. Record the payment once the customer pays.`,
+        ? `${money.format(got)} of the ${money.format(o.advance.amount)} advance is received. Record the remaining ${money.format(due)} when the customer pays it.`
+        : `An advance of ${money.format(o.advance.amount)} is due on this order. Record the payment once the customer pays.`,
       primary: { label: 'Record Advance Payment', icon: 'plus', action: 'record' },
     };
   }
@@ -133,7 +133,9 @@ export function SalesOrderDetails({
     id: o.id,
     name: o.customer,
     amount: money.format(o.total),
-    meta: [o.number, date(o.date)],
+    //  The advance rides as a third fact, beside the order's own status — the
+    //  order is Confirmed, its advance may still be due.
+    meta: [o.number, date(o.date), ...(advanceStatus(o) && advanceStatus(o) !== 'Paid' ? [`Advance ${advanceStatus(o)?.toLowerCase()}`] : [])],
     status: o.status.toUpperCase(),
     statusVariant: STATUS_TONE[o.status],
   })), [orders]);
@@ -153,7 +155,7 @@ export function SalesOrderDetails({
           onActivate={onSelect}
           views={[
             { id: 'all', label: 'All Sales Orders' },
-            { id: 'advance', label: 'Awaiting Advance' },
+            { id: 'advance', label: 'Advance Due' },
           ]}
           viewId="all"
           onViewChange={() => {}}
@@ -196,7 +198,6 @@ function OrderRecord({ order, nextAdvance, nextInvoice, onChange, onBack, onOpen
   const [recording, setRecording] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const due = advanceDue(order);
   const got = received(order);
   const step = nextStep(order);
 
@@ -226,7 +227,7 @@ function OrderRecord({ order, nextAdvance, nextInvoice, onChange, onBack, onOpen
     if (a === 'record') setRecording(true);
     else if (a === 'invoice') convert();
     else if (a === 'send') {
-      onChange({ ...order, status: order.advance && due > 0 ? 'Awaiting Advance' : 'Confirmed' });
+      onChange({ ...order, status: 'Confirmed' });
     }
   };
 
@@ -536,6 +537,9 @@ function OrderFields({ order }: { order: SalesOrder }) {
         <Inline gap={5} align="center" wrap>
           <Text as="h2" size="title">{order.number}</Text>
           <StatusBadge status={STATUS_TONE[order.status]} emphasis="solid">{order.status}</StatusBadge>
+          {advanceStatus(order) ? (
+            <StatusBadge status={ADVANCE_TONE[advanceStatus(order)!]}>Advance {advanceStatus(order)}</StatusBadge>
+          ) : null}
         </Inline>
         <Inline gap={4} align="center" wrap>
           <Text tone="secondary">
@@ -566,6 +570,10 @@ function OrderFields({ order }: { order: SalesOrder }) {
           { label: 'Expected Shipment', value: order.shipmentDate ? date(order.shipmentDate) : '—' },
           { label: 'Payment Terms', value: order.paymentTerms },
           { label: 'Advance Payment', value: termsLabel(order) },
+          ...(advanceStatus(order) ? [{
+            label: 'Advance Status',
+            value: <StatusBadge status={ADVANCE_TONE[advanceStatus(order)!]}>{advanceStatus(order)}</StatusBadge>,
+          }] : []),
         ]} />
       </Inline>
 

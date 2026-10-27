@@ -87,7 +87,12 @@ export interface SalesOrder {
   reference: string;
   paymentTerms: string;
   location: string;
-  status: 'Draft' | 'Awaiting Advance' | 'Confirmed' | 'Invoiced';
+  /**
+   * The ORDER's state. An advance does not hold it: a sent order is Confirmed
+   * whether or not its advance has arrived, and the advance has its own state —
+   * see `advanceStatus`. Two facts, two fields.
+   */
+  status: 'Draft' | 'Confirmed' | 'Invoiced';
   lines: OrderLine[];
   shipping: number;
   total: number;
@@ -116,6 +121,15 @@ export const DEPOSIT_ACCOUNTS = [
   { value: 'Petty Cash', label: 'Petty Cash' },
 ];
 
+export type AdvanceStatus = 'Pending' | 'Partially Paid' | 'Paid';
+
+/** Where the advance stands, or null for an order that did not ask for one. */
+export function advanceStatus(o: SalesOrder): AdvanceStatus | null {
+  if (!o.advance) return null;
+  const got = o.payments.reduce((s, p) => s + p.amount, 0);
+  return got >= o.advance.amount ? 'Paid' : got > 0 ? 'Partially Paid' : 'Pending';
+}
+
 export const received = (o: SalesOrder) => o.payments.reduce((s, p) => s + p.amount, 0);
 export const advanceDue = (o: SalesOrder) => Math.max(0, (o.advance?.amount ?? 0) - received(o));
 
@@ -123,7 +137,7 @@ export const SALES_ORDERS: SalesOrder[] = [
   {
     id: 'so-73', number: 'SO-00073', date: '2026-10-24', shipmentDate: '2026-11-07',
     customer: 'Mr. Jeh Faran', reference: 'PO-JF-118', paymentTerms: 'Net 15', location: 'Head Office',
-    status: 'Awaiting Advance',
+    status: 'Confirmed',
     lines: [
       { item: 'Ergonomic Office Chair', qty: 4, rate: 1996 },
       { item: 'Standing Desk Frame', qty: 1, rate: 2000 },
@@ -135,7 +149,7 @@ export const SALES_ORDERS: SalesOrder[] = [
   {
     id: 'so-72', number: 'SO-00072', date: '2026-10-22', shipmentDate: '2026-11-02',
     customer: 'Mr. John', reference: '', paymentTerms: 'Due on Receipt', location: 'Head Office',
-    status: 'Awaiting Advance',
+    status: 'Confirmed',
     lines: [{ item: 'LED Monitor 27"', qty: 2, rate: 2695 }],
     shipping: 0, total: 5390,
     advance: { type: 'amount', value: 2000, amount: 2000, collectBefore: 'shipment' },
@@ -251,15 +265,10 @@ export const CUSTOMER_INFO: Record<string, CustomerInfo> = {
 /**
  * Adds a payment to an order's advance. ONE function, used by Books' Record
  * Advance Payment and by the customer paying from the portal, so both apply the
- * same rule: the advance arriving in full is what confirms an order that was
- * waiting on it — NetSuite releases its hold on the same condition.
+ * same rule. The order's own status does not move — it was Confirmed when
+ * sent; what changes is `advanceStatus`.
  */
 export function applyAdvancePayment(o: SalesOrder, p: AdvancePayment): SalesOrder {
   const payments = [...o.payments, p];
-  const paid = payments.reduce((s, x) => s + x.amount, 0);
-  return {
-    ...o,
-    payments,
-    status: o.status === 'Awaiting Advance' && paid >= (o.advance?.amount ?? 0) ? 'Confirmed' : o.status,
-  };
+  return { ...o, payments };
 }
