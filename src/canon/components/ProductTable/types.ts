@@ -53,4 +53,8 @@ export interface TotalRow {
   kind: 'static' | 'editable' | 'emphasis';
   amount: string;
   input?: string;
+  /** A rule above this row — it starts a new block of the sum (taxes, Total, what is deducted after it). */
+  divider?: boolean;
+  /** A secondary line under the label: where a figure came from, e.g. the advance it applies. */
+  note?: string;
 }

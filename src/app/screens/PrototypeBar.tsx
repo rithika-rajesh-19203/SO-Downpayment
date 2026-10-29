@@ -32,6 +32,8 @@ export function PrototypeBar({ children, trailing }: { children?: ReactNode; tra
             emphasis="secondary"
             size="sm"
             iconRight="caret-down"
+            //  Disabled only while the list is loading — locally it always holds
+            //  at least "Local preview".
             disabled={!versions.length}
             onClick={() => setOpen((o) => !o)}
             aria-haspopup="menu"

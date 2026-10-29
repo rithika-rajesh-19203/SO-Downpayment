@@ -1,5 +1,7 @@
 import { cn } from '../../utils/cn';
 import { Text } from '../../primitives/Text';
+import { Divider } from '../Divider/Divider';
+import { Fragment } from 'react';
 import type { TotalRow } from './types';
 
 /**
@@ -32,15 +34,20 @@ export function ProductTotals({ rows, onInputChange, className }: ProductTotalsP
       className,
     )}>
       {rows.map((r) => (
-        <div key={r.id} className="flex items-center gap-5 min-w-0">
-          <Text
-            as="span"
-            size="body-sm"
-            weight={r.kind === 'emphasis' ? 'semibold' : 'medium'}
-            className="flex-1 min-w-0 truncate"
-          >
-            {r.label}
-          </Text>
+        <Fragment key={r.id}>
+        {r.divider ? <Divider /> : null}
+        <div className="flex items-center gap-5 min-w-0">
+          <span className="flex flex-col flex-1 min-w-0">
+            <Text
+              as="span"
+              size="body-sm"
+              weight={r.kind === 'emphasis' ? 'semibold' : 'medium'}
+              className="truncate"
+            >
+              {r.label}
+            </Text>
+            {r.note ? <Text as="span" size="body-sm" tone="secondary" className="truncate">{r.note}</Text> : null}
+          </span>
 
           {r.kind === 'editable' ? (
             <input
@@ -72,6 +79,7 @@ export function ProductTotals({ rows, onInputChange, className }: ProductTotalsP
             {r.amount}
           </Text>
         </div>
+        </Fragment>
       ))}
     </div>
   );

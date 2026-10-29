@@ -40,6 +40,7 @@ const PAYMENT_TONE: Record<AdvancePayment['status'], StatusBadgeStatus> = {
 };
 
 const INVOICE_TONE: Record<OrderInvoice['status'], StatusBadgeStatus> = {
+  Draft: 'draft',
   Sent: 'pending',
   'Partially Paid': 'in-progress',
   Paid: 'success',
@@ -49,8 +50,13 @@ const INVOICE_TONE: Record<OrderInvoice['status'], StatusBadgeStatus> = {
  * The bar. **Customer Portal** is a prototyping affordance — it opens the
  * portal as this order's customer, so the advance can be paid from their side
  * and the result read back here.
+ *
+ * **Convert to Invoice** sits beside it, on the bar rather than behind the `⋯`:
+ * it is the order's way forward, not a rare action. A fifth item, past the
+ * usual four, by request. Once the order is invoiced it stays visible but
+ * `aria-disabled`, so the action does not appear to vanish.
  */
-const toolbar = (onPortal: () => void): DetailsToolbarGroup[] => [
+const toolbar = (onPortal: () => void, onConvert: () => void, invoiced: boolean): DetailsToolbarGroup[] => [
   {
     id: 'document', label: 'Document actions',
     items: [
@@ -58,6 +64,7 @@ const toolbar = (onPortal: () => void): DetailsToolbarGroup[] => [
       { id: 'send', label: 'Send Email', icon: 'mail', onSelect: () => {} },
       { id: 'pdf', label: 'PDF/Print', icon: 'pdf', menu: true, onSelect: () => {} },
       { id: 'portal', label: 'Customer Portal', icon: 'share', onSelect: onPortal },
+      { id: 'invoice', label: 'Convert to Invoice', icon: 'documents', disabled: invoiced, onSelect: onConvert },
     ],
   },
 ];
@@ -104,7 +111,7 @@ function nextStep(o: SalesOrder): Step {
   }
   if (o.advance) {
     return {
-      message: `The advance of ${money.format(got)} is received. Convert this order to an invoice and the advance is applied to it automatically.`,
+      message: `The advance of ${money.format(got)} is received. Convert this order to an invoice and the advance is applied to it when you save the invoice.`,
       primary: { label: 'Convert to Invoice', icon: 'documents', action: 'invoice' },
     };
   }
@@ -124,10 +131,14 @@ export interface SalesOrderDetailsProps {
   onBack: () => void;
   /** Open the customer portal on this order — the prototype's bridge. */
   onOpenPortal: (orderId: string) => void;
+  /** Open the New Invoice page filled from this order. */
+  onConvert: (orderId: string) => void;
+  /** What to say when the details open — set on the way back from a conversion. */
+  notice?: { orderId: string; message: string } | null;
 }
 
 export function SalesOrderDetails({
-  orders, orderId, onSelect, onChange, onCreate, onBack, onOpenPortal,
+  orders, orderId, onSelect, onChange, onCreate, onBack, onOpenPortal, onConvert, notice,
 }: SalesOrderDetailsProps) {
   const items: MiniListItem[] = useMemo(() => orders.map((o) => ({
     id: o.id,
@@ -143,7 +154,6 @@ export function SalesOrderDetails({
   const order = orders.find((o) => o.id === orderId) ?? orders[0];
   //  Numbers are document-wide, so they are counted across every order.
   const advanceCount = orders.reduce((n, o) => n + o.payments.length, 0);
-  const invoiceCount = orders.reduce((n, o) => n + o.invoices.length, 0);
 
   return (
     <SplitView
@@ -169,7 +179,8 @@ export function SalesOrderDetails({
         key={order.id}
         order={order}
         nextAdvance={`ADV-${String(15 + advanceCount).padStart(5, '0')}`}
-        nextInvoice={`INV-${String(138 + invoiceCount).padStart(6, '0')}`}
+        notice={order.id === notice?.orderId ? notice.message : null}
+        onConvert={() => onConvert(order.id)}
         onChange={onChange}
         onBack={onBack}
         onOpenPortal={() => onOpenPortal(order.id)}
@@ -181,51 +192,32 @@ export function SalesOrderDetails({
 interface OrderRecordProps {
   order: SalesOrder;
   nextAdvance: string;
-  nextInvoice: string;
+  /** A message to open with — the invoice just raised from this order. */
+  notice?: string | null;
+  /** Opens the New Invoice page filled from this order. */
+  onConvert: () => void;
   onChange: (order: SalesOrder) => void;
   onBack: () => void;
   onOpenPortal: () => void;
 }
 
-function OrderRecord({ order, nextAdvance, nextInvoice, onChange, onBack, onOpenPortal }: OrderRecordProps) {
+function OrderRecord({ order, nextAdvance, notice: flash, onChange, onBack, onOpenPortal, onConvert }: OrderRecordProps) {
   const moreRef = useRef<HTMLButtonElement>(null);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [picked, setPicked] = useState(order.invoices.length && !order.advance ? 'invoices' : 'advance');
+  //  Back from Convert to Invoice, the invoice just raised is what to read.
+  const [picked, setPicked] = useState(flash || (order.invoices.length && !order.advance) ? 'invoices' : 'advance');
   //  The Invoices tab exists only once there is an invoice, so a remembered
   //  'invoices' falls back to the one tab that is always there.
   const tab = picked === 'invoices' && !order.invoices.length ? 'advance' : picked;
   const setTab = setPicked;
   const [recording, setRecording] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(flash ?? null);
 
-  const got = received(order);
   const step = nextStep(order);
-
-  const convert = () => {
-    const applied = round(got);
-    const balance = round(order.total - applied);
-    const invoice: OrderInvoice = {
-      id: `inv-${Date.now()}`, number: nextInvoice,
-      date: new Date().toISOString().slice(0, 10),
-      dueDate: new Date(Date.now() + 15 * 864e5).toISOString().slice(0, 10),
-      amount: order.total, advanceApplied: applied, balance,
-      status: balance <= 0 ? 'Paid' : applied > 0 ? 'Partially Paid' : 'Sent',
-    };
-    onChange({
-      ...order,
-      status: 'Invoiced',
-      invoices: [...order.invoices, invoice],
-      payments: order.payments.map((p) => ({ ...p, status: 'Applied', appliedTo: invoice.number })),
-    });
-    setTab('invoices');
-    setNotice(applied > 0
-      ? `${invoice.number} created. The ${money.format(applied)} advance was applied to it.`
-      : `${invoice.number} created.`);
-  };
 
   const run = (a: Action) => {
     if (a === 'record') setRecording(true);
-    else if (a === 'invoice') convert();
+    else if (a === 'invoice') onConvert();
     else if (a === 'send') {
       onChange({ ...order, status: 'Confirmed' });
     }
@@ -241,7 +233,6 @@ function OrderRecord({ order, nextAdvance, nextInvoice, onChange, onBack, onOpen
   const invoiced = order.invoices.length > 0;
   const MORE: MenuEntry[] = [
     { id: 'record', label: 'Record Advance Payment', icon: 'bank', disabled: invoiced, onSelect: () => run('record') },
-    { id: 'invoice', label: 'Convert to Invoice', icon: 'documents', disabled: invoiced, onSelect: () => run('invoice') },
     { separator: true },
     { id: 'clone', label: 'Clone', icon: 'clone', onSelect: () => {} },
     { id: 'delete', label: 'Delete', icon: 'delete', tone: 'danger', onSelect: () => {} },
@@ -251,7 +242,7 @@ function OrderRecord({ order, nextAdvance, nextInvoice, onChange, onBack, onOpen
     <>
       <PageHeader type="detail" title={order.number} parent={{ label: `Location: ${order.location}`, href: '#' }} onBack={onBack} />
       <DetailsToolbar
-        groups={toolbar(onOpenPortal)}
+        groups={toolbar(onOpenPortal, () => run('invoice'), invoiced)}
         overflow={{ ref: moreRef, expanded: moreOpen, onSelect: () => setMoreOpen((o) => !o) }}
       />
       <Menu

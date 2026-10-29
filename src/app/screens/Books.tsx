@@ -14,8 +14,11 @@ import { PurchaseOrders } from './PurchaseOrders';
 import { NewSalesOrder } from './NewSalesOrder';
 import { SalesOrderDetails } from './SalesOrderDetails';
 import { CustomerPortal } from './CustomerPortal';
+import { InvoiceFromOrder } from './InvoiceFromOrder';
 import { PrototypeBar } from './PrototypeBar';
 import { SALES_ORDERS } from '../data/sales-orders';
+import { INVOICES } from '../data/invoices';
+import type { Invoice } from '../data/invoices';
 import type { SalesOrder } from '../data/sales-orders';
 
 /**
@@ -63,6 +66,13 @@ export function Books() {
   //  portal replaces the whole shell — it is another product, not a page of
   //  this one.
   const [portalId, setPortalId] = useState<string | null>(null);
+  //  The order being converted to an invoice, or null. Like `creating`, a MODE
+  //  of the sales orders section: Cancel and Save both land back on the order.
+  const [convertingId, setConvertingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ orderId: string; message: string } | null>(null);
+  //  Invoices are STATE for the same reason orders are: a draft saved from
+  //  Convert to Invoice has to appear in the Invoices module it lands in.
+  const [invoices, setInvoices] = useState<Invoice[]>(INVOICES);
 
   //  The nav's `+` is registered once — see data/books.tsx for why it is a
   //  dispatcher rather than a prop. In an EFFECT, not in render: registering a
@@ -98,7 +108,28 @@ export function Books() {
   const changeOrder = (o: SalesOrder) => setOrders((all) => all.map((x) => (x.id === o.id ? o : x)));
   const nextNumber = `SO-${String(74 + orders.length - SALES_ORDERS.length).padStart(5, '0')}`;
 
-  const screen = currentId === 'sales-orders' && creating ? (
+  const converting = orders.find((o) => o.id === convertingId);
+  const invoiceCount = orders.reduce((n, o) => n + o.invoices.length, 0);
+
+  const screen = currentId === 'sales-orders' && converting ? (
+    <InvoiceFromOrder
+      key={converting.id}
+      order={converting}
+      invoiceNumber={`INV-${String(138 + invoiceCount).padStart(6, '0')}`}
+      onCancel={() => setConvertingId(null)}
+      onSave={(o, message) => { changeOrder(o); setNotice({ orderId: o.id, message }); setConvertingId(null); }}
+      //  A draft opens in the Invoices module, on its own details page.
+      onSaveDraft={(o, inv) => {
+        changeOrder(o);
+        setInvoices((all) => [inv, ...all]);
+        setConvertingId(null);
+        setCreating(false);
+        setCurrentId('invoices');
+        setInvoiceId(inv.id);
+      }}
+    />
+  )
+    : currentId === 'sales-orders' && creating ? (
     <NewSalesOrder
       nextNumber={nextNumber}
       onCancel={done}
@@ -114,6 +145,8 @@ export function Books() {
         onCreate={() => setCreating(true)}
         onBack={() => {}}
         onOpenPortal={setPortalId}
+        onConvert={(id) => { setNotice(null); setConvertingId(id); }}
+        notice={notice}
       />
     )
     : currentId === 'purchase-agreements' ? (
@@ -131,13 +164,14 @@ export function Books() {
     : currentId === 'purchase-orders' ? <PurchaseOrders />
       : currentId === 'invoices' && invoiceId ? (
       <InvoiceDetails
+        invoices={invoices}
         invoiceId={invoiceId}
         onSelect={setInvoiceId}
         onBack={() => setInvoiceId(null)}
       />
     )
         : currentId === 'invoices'
-          ? <Invoices onOpen={setInvoiceId} onCreate={() => setCreating(true)} />
+          ? <Invoices invoices={invoices} onOpen={setInvoiceId} onCreate={() => setCreating(true)} />
           : null;
 
   const portalOrder = orders.find((o) => o.id === portalId);
@@ -163,7 +197,7 @@ export function Books() {
           items={NAV_ITEMS}
           sections={NAV_SECTIONS}
           currentId={currentId}
-          onNavigate={(id) => { setCurrentId(id); setInvoiceId(null); setCreating(false); }}
+          onNavigate={(id) => { setCurrentId(id); setInvoiceId(null); setCreating(false); setConvertingId(null); }}
           collapsed={collapsed}
           onCollapsedChange={setCollapsed}
           product={{ name: 'Books', mark: BOOKS_MARK }}

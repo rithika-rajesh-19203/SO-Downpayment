@@ -27,6 +27,8 @@ export interface Invoice {
   amount: number;
   balance: number;
   location: string;
+  /** The sales order's advance, deducted from `amount` — only on an invoice converted from an order. */
+  advanceApplied?: number;
 }
 
 export const INVOICES: Invoice[] = [

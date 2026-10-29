@@ -90,13 +90,15 @@ const VIEWS = [
 ];
 
 export interface InvoicesProps {
+  /** The invoices to list — state in Books, so a draft raised from a sales order appears here. */
+  invoices?: Invoice[];
   /** Open one invoice's detail view. The identifying column is the way in. */
   onOpen?: (id: string) => void;
   /** The header's New. The nav leaf's `+` reaches the same screen. */
   onCreate?: () => void;
 }
 
-export function Invoices({ onOpen, onCreate }: InvoicesProps = {}) {
+export function Invoices({ invoices = INVOICES, onOpen, onCreate }: InvoicesProps = {}) {
   const [sort, setSort] = useState<TableSort>({ columnId: 'date', direction: 'desc' });
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [menuOpen, setMenuOpen] = useState(false);
@@ -120,10 +122,10 @@ export function Invoices({ onOpen, onCreate }: InvoicesProps = {}) {
   const view = VIEWS.find((v) => v.id === viewId) ?? VIEWS[0];
 
   const rows = useMemo(() => {
-    const filtered = viewId === 'unpaid' ? INVOICES.filter((i) => i.balance > 0)
-      : viewId === 'overdue' ? INVOICES.filter((i) => i.status === 'Overdue')
-        : viewId === 'draft' ? INVOICES.filter((i) => i.status === 'Draft')
-          : INVOICES;
+    const filtered = viewId === 'unpaid' ? invoices.filter((i) => i.balance > 0)
+      : viewId === 'overdue' ? invoices.filter((i) => i.status === 'Overdue')
+        : viewId === 'draft' ? invoices.filter((i) => i.status === 'Draft')
+          : invoices;
 
     //  Sort on the VALUE, never on what the cell renders. Two traps here rather
     //  than one: a date sorted as "24 Aug 2026" sorts by day-of-month, and
@@ -141,7 +143,7 @@ export function Invoices({ onOpen, onCreate }: InvoicesProps = {}) {
         ? x - y : String(x).localeCompare(String(y));
       return sort.direction === 'asc' ? d : -d;
     });
-  }, [viewId, sort]);
+  }, [invoices, viewId, sort]);
 
   const allColumns: TableColumn<Invoice>[] = [
     {

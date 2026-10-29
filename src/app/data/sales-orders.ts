@@ -52,7 +52,7 @@ export interface OrderInvoice {
   amount: number;
   advanceApplied: number;
   balance: number;
-  status: 'Sent' | 'Partially Paid' | 'Paid';
+  status: 'Draft' | 'Sent' | 'Partially Paid' | 'Paid';
 }
 
 export interface OrderLine {

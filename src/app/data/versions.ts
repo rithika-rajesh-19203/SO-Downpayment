@@ -14,7 +14,10 @@ import { useEffect, useState } from 'react';
  *     latest/           → main, unrecorded changes
  *
  * `VITE_PROTOTYPE_VERSION` is set by the deploy for each build. In `npm run dev`
- * it is unset, and the bar says "Local preview".
+ * it is unset: the bar says "Local preview", the list is read from the LIVE
+ * site (GitHub Pages sends `access-control-allow-origin: *`), and picking a
+ * recorded version opens it there in a new tab — so a local change can be put
+ * side by side with what is recorded.
  */
 export interface PrototypeVersion {
   /** The folder and the tag: `v1`, or `latest` for main. */
@@ -26,20 +29,38 @@ export interface PrototypeVersion {
 
 export const CURRENT_VERSION: string = import.meta.env.VITE_PROTOTYPE_VERSION ?? 'local';
 
+/** Where the recorded versions live, for the local preview to reach them. */
+const LIVE_SITE = 'https://rithika-rajesh-19203.github.io/SO-Downpayment/';
+
+const LOCAL: PrototypeVersion = { id: 'local', label: 'Local preview', note: 'your working copy, not pushed' };
+
 export function useVersions(): PrototypeVersion[] {
   const [versions, setVersions] = useState<PrototypeVersion[]>([]);
   useEffect(() => {
-    if (CURRENT_VERSION === 'local') return;
-    //  One level up from this version's folder — the site root.
-    fetch(new URL('../versions.json', window.location.href))
+    const local = CURRENT_VERSION === 'local';
+    //  Live: one level up from this version's folder, the site root. Local:
+    //  the live site itself.
+    fetch(local ? new URL('versions.json', LIVE_SITE) : new URL('../versions.json', window.location.href))
       .then((r) => (r.ok ? r.json() : []))
-      .then((v: PrototypeVersion[]) => setVersions(Array.isArray(v) ? v : []))
-      .catch(() => setVersions([]));
+      .then((v: PrototypeVersion[]) => {
+        const list = Array.isArray(v) ? v : [];
+        setVersions(local ? [LOCAL, ...list] : list);
+      })
+      //  Offline, or the site is down: the local preview still names itself.
+      .catch(() => setVersions(local ? [LOCAL] : []));
   }, []);
   return versions;
 }
 
-/** Open another version — its folder, beside this one. */
+/**
+ * Open another version — its folder beside this one. From the local preview
+ * it opens on the live site in a NEW TAB, so the working copy, and any state
+ * built up in it, stays where it is.
+ */
 export function openVersion(id: string) {
+  if (CURRENT_VERSION === 'local') {
+    window.open(new URL(`${id}/`, LIVE_SITE).toString(), '_blank', 'noopener');
+    return;
+  }
   window.location.href = new URL(`../${id}/`, window.location.href).toString();
 }

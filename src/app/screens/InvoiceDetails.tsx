@@ -109,13 +109,15 @@ const MORE: MenuEntry[] = [
 ];
 
 export interface InvoiceDetailsProps {
+  /** The invoices in the mini list — state in Books, so a converted draft is one of them. */
+  invoices?: Invoice[];
   invoiceId: string;
   onSelect: (id: string) => void;
   /** Back to the list view. */
   onBack: () => void;
 }
 
-export function InvoiceDetails({ invoiceId, onSelect, onBack }: InvoiceDetailsProps) {
+export function InvoiceDetails({ invoices = INVOICES, invoiceId, onSelect, onBack }: InvoiceDetailsProps) {
   const [bulk, setBulk] = useState<ReadonlySet<string>>(new Set());
   const moreRef = useRef<HTMLButtonElement>(null);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -124,7 +126,7 @@ export function InvoiceDetails({ invoiceId, onSelect, onBack }: InvoiceDetailsPr
   const [tab, setTab] = useState('details');
   const [view, setView] = useState('details');
 
-  const items: MiniListItem[] = useMemo(() => INVOICES.map((i) => ({
+  const items: MiniListItem[] = useMemo(() => invoices.map((i) => ({
     id: i.id,
     name: i.customer,
     amount: money.format(i.amount),
@@ -132,9 +134,9 @@ export function InvoiceDetails({ invoiceId, onSelect, onBack }: InvoiceDetailsPr
     meta: [i.number, day.format(new Date(i.date))],
     status: i.statusLabel,
     statusVariant: STATUS_TONE[i.status],
-  })), []);
+  })), [invoices]);
 
-  const invoice = INVOICES.find((i) => i.id === invoiceId) ?? INVOICES[0];
+  const invoice = invoices.find((i) => i.id === invoiceId) ?? invoices[0];
   const selecting = bulk.size > 0;
 
   return (
@@ -337,6 +339,16 @@ export function InvoiceDetails({ invoiceId, onSelect, onBack }: InvoiceDetailsPr
                         </Text>
                       ),
                     },
+                    //  Only on an invoice raised from a sales order: without it,
+                    //  Amount less Balance due is a gap nothing explains.
+                    ...(invoice.advanceApplied ? [{
+                      label: 'Advance applied',
+                      value: (
+                        <Text as="span" className="tabular-nums">
+                          {`(−) ${money.format(invoice.advanceApplied)}`}
+                        </Text>
+                      ),
+                    }] : []),
                     {
                       label: 'Balance due',
                       value: (

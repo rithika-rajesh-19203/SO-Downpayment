@@ -96,6 +96,20 @@ export const Default: Story = { render: () => <Host /> };
  * §15 — the head band is already meaningful, so the empty state is one 34px row
  * of copy rather than an illustration. The lanes are present but empty.
  */
+/**
+ * A deduction after the total — an advance applied to an invoice. The rule
+ * marks where the sum ends; the note says where the deducted figure came from.
+ */
+export const Deduction: Story = {
+  render: () => (
+    <Host totals={[
+      ...TOTALS,
+      { id: 'advance', label: 'Less: Advance Applied', kind: 'static', amount: '(−) ₹4,000.00', divider: true, note: 'ADV-00015 · SO-00073' },
+      { id: 'balance', label: 'Balance Due', kind: 'emphasis', amount: '₹12,530.00' },
+    ]} />
+  ),
+};
+
 export const Empty: Story = { render: () => <Host rows={[]} totals={undefined} /> };
 
 /**
