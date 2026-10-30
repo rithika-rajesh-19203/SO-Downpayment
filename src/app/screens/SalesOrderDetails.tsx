@@ -53,10 +53,10 @@ const INVOICE_TONE: Record<OrderInvoice['status'], StatusBadgeStatus> = {
  *
  * **Convert to Invoice** sits beside it, on the bar rather than behind the `⋯`:
  * it is the order's way forward, not a rare action. A fifth item, past the
- * usual four, by request. Once the order is invoiced it stays visible but
- * `aria-disabled`, so the action does not appear to vanish.
+ * usual four, by request. It stays visible but `aria-disabled` while it cannot
+ * run — see `canConvert` — so the action does not appear to vanish.
  */
-const toolbar = (onPortal: () => void, onConvert: () => void, invoiced: boolean): DetailsToolbarGroup[] => [
+const toolbar = (onPortal: () => void, onConvert: () => void, blocked: boolean): DetailsToolbarGroup[] => [
   {
     id: 'document', label: 'Document actions',
     items: [
@@ -64,10 +64,17 @@ const toolbar = (onPortal: () => void, onConvert: () => void, invoiced: boolean)
       { id: 'send', label: 'Send Email', icon: 'mail', onSelect: () => {} },
       { id: 'pdf', label: 'PDF/Print', icon: 'pdf', menu: true, onSelect: () => {} },
       { id: 'portal', label: 'Customer Portal', icon: 'share', onSelect: onPortal },
-      { id: 'invoice', label: 'Convert to Invoice', icon: 'documents', disabled: invoiced, onSelect: onConvert },
+      { id: 'invoice', label: 'Convert to Invoice', icon: 'documents', disabled: blocked, onSelect: onConvert },
     ],
   },
 ];
+
+/**
+ * An order can be invoiced once, and — if it asked for an advance — only once
+ * the WHOLE advance is in. A part-paid advance would otherwise be applied to an
+ * invoice that still expects the rest of it upfront.
+ */
+const canConvert = (o: SalesOrder) => !o.invoices.length && (!o.advance || advanceDue(o) <= 0);
 
 type Step = {
   message: string;
@@ -242,7 +249,7 @@ function OrderRecord({ order, nextAdvance, notice: flash, onChange, onBack, onOp
     <>
       <PageHeader type="detail" title={order.number} parent={{ label: `Location: ${order.location}`, href: '#' }} onBack={onBack} />
       <DetailsToolbar
-        groups={toolbar(onOpenPortal, () => run('invoice'), invoiced)}
+        groups={toolbar(onOpenPortal, () => run('invoice'), !canConvert(order))}
         overflow={{ ref: moreRef, expanded: moreOpen, onSelect: () => setMoreOpen((o) => !o) }}
       />
       <Menu
