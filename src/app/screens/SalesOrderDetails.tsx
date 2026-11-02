@@ -522,7 +522,7 @@ function OrderDocument({ order }: { order: SalesOrder }) {
           />
         )}
       >
-        {view === 'pdf' ? <OrderPdf order={order} balance={false} />
+        {view === 'pdf' ? <OrderPdf order={order} />
           : tab === 'details' ? <OrderFields order={order} />
             : <OrderActivity order={order} />}
       </Tabs>
@@ -613,7 +613,7 @@ function OrderFields({ order }: { order: SalesOrder }) {
           rows={lines(order)}
           rowKey={(r) => r.id}
         />
-        <OrderTotals order={order} balance={false} />
+        <OrderTotals order={order} />
       </Stack>
     </Stack>
   );
