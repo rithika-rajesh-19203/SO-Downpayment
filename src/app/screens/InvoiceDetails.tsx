@@ -381,7 +381,7 @@ function InvoiceSummary({ invoice, onApprove }: { invoice: Invoice; onApprove: (
         <Stack gap={5}>
           {pending > 0 ? (
             <Stack gap={2}>
-              <Credit label={`Sales Order Advance (${invoice.order})`} value={amount.format(pending)} />
+              <Credit highlight label={`Sales Order Advance (${invoice.order})`} value={amount.format(pending)} />
               <Inline gap={2} align="center" className="ps-6">
                 <Icon name="info" size="sm" tone="primary" />
                 <Text size="body-sm" tone="secondary">
@@ -390,7 +390,7 @@ function InvoiceSummary({ invoice, onApprove }: { invoice: Invoice; onApprove: (
               </Inline>
             </Stack>
           ) : applied > 0 ? (
-            <Credit label={`Sales Order Advance (${invoice.order})`} value={`${amount.format(applied)} applied`} />
+            <Credit highlight label={`Sales Order Advance (${invoice.order})`} value={`${amount.format(applied)} applied`} />
           ) : null}
           {CREDITS.map(([label, value]) => <Credit key={label} label={label} value={value} />)}
         </Stack>
@@ -427,12 +427,16 @@ function InvoiceSummary({ invoice, onApprove }: { invoice: Invoice; onApprove: (
   );
 }
 
-/** One "• Label : Value ›" line. The chevron says the figure opens somewhere. */
-function Credit({ label, value }: { label: string; value: string }) {
+/**
+ * One "• Label : Value ›" line. The chevron says the figure opens somewhere.
+ * `highlight` sets the order's advance apart from the customer's own balances —
+ * `link`, the blue that passes at 13px, and medium.
+ */
+function Credit({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <Inline gap={3} align="center">
-      <Text tone="secondary" aria-hidden>•</Text>
-      <Text>
+      <Text tone={highlight ? 'link' : 'secondary'} aria-hidden>•</Text>
+      <Text tone={highlight ? 'link' : 'default'} weight={highlight ? 'medium' : 'regular'}>
         {label} : <Text as="span" weight="semibold" className="tabular-nums">{value}</Text>
       </Text>
       <Icon name="chevron-right" size="sm" tone="primary" />
