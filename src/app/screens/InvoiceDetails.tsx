@@ -1,12 +1,15 @@
-import { useMemo, useRef, useState } from 'react';
+import { Fragment, useMemo, useRef, useState } from 'react';
 import {
-  ActionBar, Avatar, DescriptionList, DetailsToolbar, Icon, Inline, Menu, MiniList,
-  PageHeader, Segmented, SplitView, StatusBadge, Stack, Surface, Tabs, Text,
+  ActionBar, Avatar, Button, DescriptionList, DetailsToolbar, Divider, Icon, Inline, Menu, MiniList,
+  PageHeader, Segmented, SplitView, StatusBadge, Stack, Surface, Table, Tabs, Text,
 } from '@canon';
 import type { DetailsToolbarGroup, MenuEntry } from '@canon';
 import type { MiniListItem, StatusBadgeStatus } from '@canon';
 import { INVOICES } from '../data/invoices';
 import type { Invoice } from '../data/invoices';
+import { CUSTOMER_INFO, lineAmount } from '../data/sales-orders';
+import { Address, LINE_COLUMNS, date, money as amount } from './SalesOrderDocument';
+import type { Line } from './SalesOrderDocument';
 
 /**
  * SALES → INVOICES → one invoice. The split view.
@@ -80,8 +83,20 @@ const TOOLBAR: DetailsToolbarGroup[] = [
       { id: 'send', label: 'Send', icon: 'mail', menu: true, onSelect: () => {} },
       { id: 'share', label: 'Share', icon: 'share', onSelect: () => {} },
       { id: 'pdf', label: 'PDF/Print', icon: 'pdf', menu: true, onSelect: () => {} },
+      //  A fifth item, by request — the reference puts it on the bar.
+      { id: 'payment', label: 'Record Payment', icon: 'bank', onSelect: () => {} },
     ],
   },
+];
+
+/**
+ * The customer's other balances, as the reference shows them. Sample figures:
+ * the prototype has no credit notes or retainers to total.
+ */
+const CREDITS: [string, string][] = [
+  ['Credits Available', 'Rs.184,922.00'],
+  ['Retainer Available', 'Rs.15,601.00'],
+  ['Unbilled Bill Items available', '2'],
 ];
 
 /**
@@ -113,11 +128,13 @@ export interface InvoiceDetailsProps {
   invoices?: Invoice[];
   invoiceId: string;
   onSelect: (id: string) => void;
+  /** Approve a draft — Send Invoice and Mark As Sent both do. Applies any held advance. */
+  onApprove?: (id: string) => void;
   /** Back to the list view. */
   onBack: () => void;
 }
 
-export function InvoiceDetails({ invoices = INVOICES, invoiceId, onSelect, onBack }: InvoiceDetailsProps) {
+export function InvoiceDetails({ invoices = INVOICES, invoiceId, onSelect, onApprove, onBack }: InvoiceDetailsProps) {
   const [bulk, setBulk] = useState<ReadonlySet<string>>(new Set());
   const moreRef = useRef<HTMLButtonElement>(null);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -206,7 +223,7 @@ export function InvoiceDetails({ invoices = INVOICES, invoiceId, onSelect, onBac
       <PageHeader
         type="detail"
         title={invoice.number}
-        parent={{ label: 'Invoices', href: '#' }}
+        parent={{ label: `Location: ${invoice.location}`, href: '#' }}
         onBack={onBack}
       />
 
@@ -247,27 +264,10 @@ export function InvoiceDetails({ invoices = INVOICES, invoiceId, onSelect, onBac
           scrollbar — the list on the left keeps its own. */}
       <Surface tone="canvas" pad={0} radius="none" className="flex-1 min-h-0 overflow-y-auto">
         <Stack gap={8} className="p-10">
-          {/* SECTION 1 — the summary. `radius="card"` is `chrome/card`, 10:
-              a named role rather than a step, because 10 is a retired value on
-              the radius ramp and the guard rejects it inside `--zf-radius-*`. */}
-          <Surface pad={10} radius="card" border="default">
-            <Inline gap={8} align="center" wrap>
-              <Avatar name={invoice.customer} size="md" />
-              <Stack gap={2} className="min-w-0 flex-1">
-                <Text size="heading" truncate>{invoice.customer}</Text>
-                <Text size="body-sm" tone="secondary">{invoice.location}</Text>
-              </Stack>
-              <Stack gap={2} align="end" className="flex-none">
-                <Text size="title" weight="semibold" className="tabular-nums">
-                  {money.format(invoice.balance)}
-                </Text>
-                <Text size="body-sm" tone="secondary">Balance due</Text>
-              </Stack>
-              <StatusBadge status={STATUS_TONE[invoice.status]}>
-                {invoice.statusLabel}
-              </StatusBadge>
-            </Inline>
-          </Surface>
+          {/* SECTION 1 — what the customer has to put against this invoice,
+              then the one step it is waiting on. `radius="card"` is
+              `chrome/card`, 10: a named role, because 10 is a retired radius. */}
+          <InvoiceSummary invoice={invoice} onApprove={() => onApprove?.(invoice.id)} />
 
           {/* SECTION 2 — tabbed. `pad={0}` because the tab strip's rule has to
               reach both edges of the card: a strip inset by the card's own
@@ -315,52 +315,7 @@ export function InvoiceDetails({ invoices = INVOICES, invoiceId, onSelect, onBac
                   <Text size="body-sm" tone="tertiary">The rendered document preview.</Text>
                 </Stack>
               ) : tab === 'details' ? (
-                <Stack gap={8} className="p-15">
-                  <DescriptionList items={[
-                    { label: 'Invoice#', value: invoice.number },
-                    { label: 'Order#', value: invoice.order },
-                    { label: 'Invoice date', value: day.format(new Date(invoice.date)) },
-                    {
-                      label: 'Due date',
-                      //  The one field whose VALUE carries a state. `danger`
-                      //  rather than a badge: a date is still a date, and two
-                      //  badges in one card make neither read as the status.
-                      value: (
-                        <Text as="span" tone={invoice.status === 'Overdue' ? 'danger' : 'default'}>
-                          {day.format(new Date(invoice.dueDate))}
-                        </Text>
-                      ),
-                    },
-                    {
-                      label: 'Amount',
-                      value: (
-                        <Text as="span" weight="medium" className="tabular-nums">
-                          {money.format(invoice.amount)}
-                        </Text>
-                      ),
-                    },
-                    //  Only on an invoice raised from a sales order: without it,
-                    //  Amount less Balance due is a gap nothing explains.
-                    ...(invoice.advanceApplied ? [{
-                      label: 'Advance applied',
-                      value: (
-                        <Text as="span" className="tabular-nums">
-                          {`(−) ${money.format(invoice.advanceApplied)}`}
-                        </Text>
-                      ),
-                    }] : []),
-                    {
-                      label: 'Balance due',
-                      value: (
-                        <Text as="span" weight="medium" className="tabular-nums"
-                          tone={invoice.balance > 0 ? 'default' : 'tertiary'}>
-                          {money.format(invoice.balance)}
-                        </Text>
-                      ),
-                    },
-                    { label: 'Location', value: invoice.location },
-                  ]} />
-                </Stack>
+                <InvoiceFields invoice={invoice} />
               ) : tab === 'activity' ? (
                 <Stack gap={6} className="p-15">
                   {[
@@ -384,8 +339,217 @@ export function InvoiceDetails({ invoices = INVOICES, invoiceId, onSelect, onBac
               )}
             </Tabs>
           </Surface>
+
+          <Surface pad={0} radius="card" border="default" className="overflow-hidden">
+            <Stack gap={0}>
+              <Stack gap={0} className="p-10">
+                <Text as="h2" size="heading">Terms and Conditions</Text>
+              </Stack>
+              <Divider />
+              <Stack gap={0} align="center" className="p-15">
+                <Text tone={invoice.terms ? 'default' : 'secondary'}>
+                  {invoice.terms || 'No Terms and Conditions'}
+                </Text>
+              </Stack>
+            </Stack>
+          </Surface>
         </Stack>
       </Surface>
     </SplitView>
+  );
+}
+
+/* ── SECTION 1: CREDITS AND WHAT'S NEXT ─────────────────────────────────────── */
+
+/**
+ * The balances the customer has against them, then the next step.
+ *
+ * **The sales order's advance is one of those balances** while the invoice is
+ * a draft: received, held, and not yet taken off — so it is listed beside the
+ * customer's credits rather than in the totals, with a note saying when it
+ * moves. Approving the draft applies it, and the line then says so.
+ */
+function InvoiceSummary({ invoice, onApprove }: { invoice: Invoice; onApprove: () => void }) {
+  const pending = invoice.advancePending ?? 0;
+  const applied = invoice.advanceApplied ?? 0;
+  const draft = invoice.status === 'Draft';
+  const done = invoice.status === 'Paid' || invoice.status === 'Void';
+
+  return (
+    <Surface pad={10} radius="card" border="default">
+      <Stack gap={8}>
+        <Stack gap={5}>
+          {pending > 0 ? (
+            <Stack gap={2}>
+              <Credit label={`Sales Order Advance (${invoice.order})`} value={amount.format(pending)} />
+              <Inline gap={2} align="center" className="ps-6">
+                <Icon name="info" size="sm" tone="primary" />
+                <Text size="body-sm" tone="secondary">
+                  Received on the sales order. It is applied to this invoice automatically when the invoice is approved.
+                </Text>
+              </Inline>
+            </Stack>
+          ) : applied > 0 ? (
+            <Credit label={`Sales Order Advance (${invoice.order})`} value={`${amount.format(applied)} applied`} />
+          ) : null}
+          {CREDITS.map(([label, value]) => <Credit key={label} label={label} value={value} />)}
+        </Stack>
+
+        {done ? null : (
+          <>
+            <Divider />
+            <Inline gap={6} align="center" wrap>
+              <Inline gap={3} align="center" className="flex-1 min-w-0">
+                <Icon name="sparkle" size="md" tone="primary" />
+                <Text>
+                  <Text as="span" weight="semibold">WHAT'S NEXT?</Text>
+                  {' '}
+                  {draft
+                    ? 'Send this Invoice to your customer or mark it as Sent.'
+                    : `Record a payment for the ${amount.format(invoice.balance)} still due.`}
+                </Text>
+              </Inline>
+              <Inline gap={4} align="center" className="flex-none">
+                {draft ? (
+                  <>
+                    <Button onClick={onApprove}>Send Invoice</Button>
+                    <Button emphasis="secondary" onClick={onApprove}>Mark As Sent</Button>
+                  </>
+                ) : (
+                  <Button icon="plus">Record Payment</Button>
+                )}
+              </Inline>
+            </Inline>
+          </>
+        )}
+      </Stack>
+    </Surface>
+  );
+}
+
+/** One "• Label : Value ›" line. The chevron says the figure opens somewhere. */
+function Credit({ label, value }: { label: string; value: string }) {
+  return (
+    <Inline gap={3} align="center">
+      <Text tone="secondary" aria-hidden>•</Text>
+      <Text>
+        {label} : <Text as="span" weight="semibold" className="tabular-nums">{value}</Text>
+      </Text>
+      <Icon name="chevron-right" size="sm" tone="primary" />
+    </Inline>
+  );
+}
+
+/* ── THE INVOICE'S FIELDS ──────────────────────────────────────────────────── */
+
+/**
+ * The record in the reference's shape — the sales order details page's, so an
+ * order and the invoice raised from it read the same way.
+ *
+ * A seeded invoice has no lines of its own, so it shows one line for its whole
+ * amount rather than an empty table under a non-zero total.
+ */
+function InvoiceFields({ invoice }: { invoice: Invoice }) {
+  const customer = CUSTOMER_INFO[invoice.customer];
+  const rows: Line[] = (invoice.lines ?? [{ item: 'Services', qty: 1, rate: invoice.amount }])
+    .map((l, i) => ({ ...l, id: String(i), n: i + 1 }));
+  const sub = rows.reduce((s, l) => s + lineAmount(l), 0);
+  const applied = invoice.advanceApplied ?? 0;
+  const paid = Math.max(0, invoice.amount - applied - invoice.balance);
+
+  const totals: [string, string, boolean?][] = [
+    ['Sub Total', amount.format(sub)],
+    ...(invoice.shipping ? [['Shipping Charges', amount.format(invoice.shipping)] as [string, string]] : []),
+    ['Total', amount.format(invoice.amount), true],
+    ...(applied ? [[`Advance Applied (${invoice.order})`, `(−) ${amount.format(applied)}`] as [string, string]] : []),
+    ...(paid ? [['Payments Made', `(−) ${amount.format(paid)}`] as [string, string]] : []),
+    ['Balance Due', amount.format(invoice.balance), true],
+  ];
+
+  return (
+    <Stack gap={16} className="p-15">
+      <Stack gap={4}>
+        <Inline gap={5} align="center" wrap>
+          <Text as="h2" size="title">{invoice.number}</Text>
+          <StatusBadge status={STATUS_TONE[invoice.status]} emphasis="solid">{invoice.statusLabel}</StatusBadge>
+        </Inline>
+        <Inline gap={4} align="center" wrap>
+          <Text tone="secondary">
+            Total : <Text as="span" weight="semibold" className="tabular-nums">{amount.format(invoice.amount)}</Text>
+          </Text>
+          <Text tone="tertiary" aria-hidden>•</Text>
+          <Text tone="secondary">
+            Balance Due : <Text as="span" weight="semibold" className="tabular-nums">{amount.format(invoice.balance)}</Text>
+          </Text>
+        </Inline>
+      </Stack>
+
+      <Inline gap={16} align="start" wrap>
+        <DescriptionList className="flex-1 min-w-0" items={[
+          { label: 'Invoice Number', value: invoice.number },
+          { label: 'Invoice Date', value: date(invoice.date) },
+          { label: 'Status', value: invoice.statusLabel },
+          { label: 'Place of Supply', value: customer?.placeOfSupply ?? '—' },
+          { label: 'PDF Template', value: 'Spreadsheet Template' },
+        ]} />
+        <DescriptionList className="flex-1 min-w-0" items={[
+          { label: 'Creation Date', value: date(invoice.date) },
+          { label: 'Due Date', value: (
+            <Text as="span" tone={invoice.status === 'Overdue' ? 'danger' : 'default'}>{date(invoice.dueDate)}</Text>
+          ) },
+          { label: 'Sales Order#', value: <Text as="span" tone="link">{invoice.order}</Text> },
+          { label: 'Payment Gateways', value: 'Razorpay' },
+          { label: 'Payment Terms', value: invoice.paymentTerms ?? 'Due on Receipt' },
+        ]} />
+      </Inline>
+
+      <Stack gap={8}>
+        <Text as="h3" size="heading">Customer Details</Text>
+        <Inline gap={16} align="start" wrap>
+          <DescriptionList className="flex-1 min-w-0" items={[
+            {
+              label: 'Name',
+              value: (
+                <Inline gap={4} align="center">
+                  <Avatar name={invoice.customer} size="sm" />
+                  <Text as="span" weight="medium">{invoice.customer}</Text>
+                </Inline>
+              ),
+            },
+            { label: 'Billing Address', value: <Address value={customer?.billing ?? []} /> },
+          ]} />
+          <DescriptionList className="flex-1 min-w-0" items={[
+            { label: 'Shipping Address', value: <Address value={customer?.shipping ?? []} /> },
+          ]} />
+        </Inline>
+      </Stack>
+
+      <Stack gap={8}>
+        <Text as="h3" size="heading">{`Items (${rows.length})`}</Text>
+        <Table<Line>
+          caption={`Items on ${invoice.number}`}
+          placement="card"
+          columns={LINE_COLUMNS}
+          rows={rows}
+          rowKey={(r) => r.id}
+        />
+        <Stack gap={4} className="ms-auto w-1/3 min-w-pt-totals-min">
+          {totals.map(([label, value, bold]) => (
+            <Fragment key={label}>
+              <Inline gap={8} justify="between">
+                <Text tone={bold ? 'default' : 'secondary'} weight={bold ? 'semibold' : 'regular'}>{label}</Text>
+                <Text weight={bold ? 'semibold' : 'regular'} className="tabular-nums">{value}</Text>
+              </Inline>
+              {label === 'Total' ? <Divider /> : null}
+            </Fragment>
+          ))}
+        </Stack>
+      </Stack>
+
+      <Stack gap={4}>
+        <Text as="h3" size="heading">Notes</Text>
+        <Text>{invoice.notes || 'Thank you for the payment. You just made our day.'}</Text>
+      </Stack>
+    </Stack>
   );
 }

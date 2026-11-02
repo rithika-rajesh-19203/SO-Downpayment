@@ -178,8 +178,9 @@ export function InvoiceFromOrder({ order, invoiceNumber, onCancel, onSave, onSav
   const date = iso(values.date, today);
   const due = addDays(date, TERM_DAYS[values.terms] ?? 15);
 
-  //  A draft still carries the advance: the figure the user saw under Total is
-  //  the figure the draft keeps, so opening it shows the same Balance Due.
+  //  A draft does NOT take the advance yet: it is held against the draft and
+  //  applied when the draft is approved, so the order's payments stay Received
+  //  and the draft's balance is its whole total until then.
   const save = (draft = false) => {
     const invoice: OrderInvoice = {
       id: `inv-${Date.now()}`,
@@ -187,22 +188,26 @@ export function InvoiceFromOrder({ order, invoiceNumber, onCancel, onSave, onSav
       date,
       dueDate: due,
       amount: total,
-      advanceApplied: applied,
-      balance,
+      advanceApplied: draft ? 0 : applied,
+      balance: draft ? total : balance,
       status: draft ? 'Draft' : balance <= 0 ? 'Paid' : applied > 0 ? 'Partially Paid' : 'Sent',
     };
     const next: SalesOrder = {
       ...order,
       status: 'Invoiced',
       invoices: [...order.invoices, invoice],
-      payments: order.payments.map((p) => ({ ...p, status: 'Applied', appliedTo: invoice.number })),
+      payments: draft ? order.payments
+        : order.payments.map((p) => ({ ...p, status: 'Applied', appliedTo: invoice.number })),
     };
     if (draft) {
       onSaveDraft(next, {
         id: invoice.id, number: invoice.number, date, dueDate: due,
         order: order.number, customer: values.customer || order.customer,
         status: 'Draft', statusLabel: 'Draft',
-        amount: total, advanceApplied: applied, balance, location: values.location || order.location,
+        amount: total, advancePending: applied || undefined, balance: total,
+        location: values.location || order.location,
+        lines: lines.map(toLine), shipping: num(shipping), paymentTerms: values.terms,
+        notes: values.notes, terms: values.conditions,
       });
       return;
     }

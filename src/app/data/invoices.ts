@@ -1,3 +1,5 @@
+import type { OrderLine } from './sales-orders';
+
 /**
  * Thirty invoices. Application data — the canon owns how a row looks, this owns
  * what is in one.
@@ -29,6 +31,33 @@ export interface Invoice {
   location: string;
   /** The sales order's advance, deducted from `amount` — only on an invoice converted from an order. */
   advanceApplied?: number;
+  /**
+   * The sales order's advance while the invoice is still a DRAFT: received,
+   * waiting, and not yet taken off the balance. Approving the draft applies it —
+   * see `approveInvoice` — and moves it to `advanceApplied`.
+   */
+  advancePending?: number;
+  /** The lines, on an invoice raised from an order. The seeded ones have none. */
+  lines?: OrderLine[];
+  shipping?: number;
+  paymentTerms?: string;
+  notes?: string;
+  terms?: string;
+}
+
+/**
+ * Approve a draft: it goes out, and the order's advance comes off what is left
+ * to collect. ONE function, so the invoice and the order it came from agree on
+ * the same figures.
+ */
+export function approveInvoice(i: Invoice): Invoice {
+  const advance = i.advancePending ?? 0;
+  const balance = Math.max(0, Math.round((i.amount - advance) * 100) / 100);
+  const status = balance <= 0 ? 'Paid' : advance > 0 ? 'Partially Paid' : 'Sent';
+  return {
+    ...i, status, statusLabel: status, balance,
+    advanceApplied: advance || undefined, advancePending: undefined,
+  };
 }
 
 export const INVOICES: Invoice[] = [

@@ -17,7 +17,7 @@ import { CustomerPortal } from './CustomerPortal';
 import { InvoiceFromOrder } from './InvoiceFromOrder';
 import { PrototypeBar } from './PrototypeBar';
 import { SALES_ORDERS } from '../data/sales-orders';
-import { INVOICES } from '../data/invoices';
+import { INVOICES, approveInvoice } from '../data/invoices';
 import type { Invoice } from '../data/invoices';
 import type { SalesOrder } from '../data/sales-orders';
 
@@ -109,6 +109,24 @@ export function Books() {
   const nextNumber = `SO-${String(74 + orders.length - SALES_ORDERS.length).padStart(5, '0')}`;
 
   const converting = orders.find((o) => o.id === convertingId);
+
+  //  Approving a draft applies the order's advance — to the invoice here, and
+  //  to the order it came from, whose payments flip to Applied against it.
+  const approve = (id: string) => {
+    const inv = invoices.find((i) => i.id === id);
+    if (!inv || inv.status !== 'Draft') return;
+    const next = approveInvoice(inv);
+    setInvoices((all) => all.map((i) => (i.id === id ? next : i)));
+    setOrders((all) => all.map((o) => (o.number !== inv.order ? o : {
+      ...o,
+      invoices: o.invoices.map((x) => (x.number !== inv.number ? x : {
+        ...x, status: next.status as typeof x.status, advanceApplied: next.advanceApplied ?? 0, balance: next.balance,
+      })),
+      payments: next.advanceApplied
+        ? o.payments.map((p) => ({ ...p, status: 'Applied' as const, appliedTo: inv.number }))
+        : o.payments,
+    })));
+  };
   const invoiceCount = orders.reduce((n, o) => n + o.invoices.length, 0);
 
   const screen = currentId === 'sales-orders' && converting ? (
@@ -167,6 +185,7 @@ export function Books() {
         invoices={invoices}
         invoiceId={invoiceId}
         onSelect={setInvoiceId}
+        onApprove={approve}
         onBack={() => setInvoiceId(null)}
       />
     )

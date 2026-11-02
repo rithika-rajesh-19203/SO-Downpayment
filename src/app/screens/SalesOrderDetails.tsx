@@ -100,6 +100,13 @@ function nextStep(o: SalesOrder): Step {
       primary: { label: 'Mark as Confirmed', icon: 'check', action: 'send' },
     };
   }
+  if (inv?.status === 'Draft') {
+    return {
+      message: got > 0
+        ? `${inv.number} is a draft. The ${money.format(got)} advance is applied to it automatically when it is approved.`
+        : `${inv.number} is a draft. Approve it in Invoices to send it to ${o.customer}.`,
+    };
+  }
   if (inv) {
     return inv.balance > 0
       ? {
