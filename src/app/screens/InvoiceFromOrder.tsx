@@ -407,7 +407,7 @@ export function InvoiceFromOrder({ order, invoiceNumber, onCancel, onSave, onSav
                   ? [
                     {
                       id: 'advance', label: 'Less: Advance Applied', kind: 'static' as const,
-                      amount: `(−) ${money.format(applied)}`, divider: true, note: `${advances} · from ${order.number}`,
+                      amount: `(−) ${money.format(applied)}`, divider: true,
                     },
                     { id: 'balance', label: 'Balance Due ( ₹ )', kind: 'emphasis' as const, amount: money.format(balance) },
                   ]

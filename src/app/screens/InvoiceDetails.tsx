@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useRef, useState } from 'react';
 import {
-  ActionBar, Avatar, Button, DescriptionList, DetailsToolbar, Divider, Icon, Inline, Menu, MiniList,
+  ActionBar, Avatar, Banner, Button, DescriptionList, DetailsToolbar, Divider, Icon, Inline, Menu, MiniList,
   PageHeader, Segmented, SplitView, StatusBadge, Stack, Surface, Table, Tabs, Text,
 } from '@canon';
 import type { DetailsToolbarGroup, MenuEntry } from '@canon';
@@ -379,18 +379,29 @@ function InvoiceSummary({ invoice, onApprove }: { invoice: Invoice; onApprove: (
     <Surface pad={10} radius="card" border="default">
       <Stack gap={8}>
         <Stack gap={5}>
+          {/* The order's advance is a BANNER, not another bullet: it is the one
+              balance on this card that moves by itself, and the note under it
+              says when. `info` while it is held; `success` once it is applied. */}
           {pending > 0 ? (
-            <Stack gap={2}>
-              <Credit highlight label={`Sales Order Advance (${invoice.order})`} value={amount.format(pending)} />
-              <Inline gap={2} align="center" className="ps-6">
-                <Icon name="info" size="sm" tone="primary" />
-                <Text size="body-sm" tone="secondary">
+            <Banner tone="info">
+              <Stack gap={1}>
+                <Text tone="inherit" weight="medium">
+                  Sales Order Advance ({invoice.order}) :{' '}
+                  <Text as="span" tone="inherit" weight="semibold" className="tabular-nums">{amount.format(pending)}</Text>
+                </Text>
+                <Text size="body-sm" tone="inherit">
                   Received on the sales order. It is applied to this invoice automatically when the invoice is approved.
                 </Text>
-              </Inline>
-            </Stack>
+              </Stack>
+            </Banner>
           ) : applied > 0 ? (
-            <Credit highlight label={`Sales Order Advance (${invoice.order})`} value={`${amount.format(applied)} applied`} />
+            <Banner tone="success">
+              <Text tone="inherit" weight="medium">
+                Sales Order Advance ({invoice.order}) :{' '}
+                <Text as="span" tone="inherit" weight="semibold" className="tabular-nums">{amount.format(applied)}</Text>
+                {' '}applied to this invoice.
+              </Text>
+            </Banner>
           ) : null}
           {CREDITS.map(([label, value]) => <Credit key={label} label={label} value={value} />)}
         </Stack>
@@ -427,16 +438,12 @@ function InvoiceSummary({ invoice, onApprove }: { invoice: Invoice; onApprove: (
   );
 }
 
-/**
- * One "• Label : Value ›" line. The chevron says the figure opens somewhere.
- * `highlight` sets the order's advance apart from the customer's own balances —
- * `link`, the blue that passes at 13px, and medium.
- */
-function Credit({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+/** One "• Label : Value ›" line. The chevron says the figure opens somewhere. */
+function Credit({ label, value }: { label: string; value: string }) {
   return (
     <Inline gap={3} align="center">
-      <Text tone={highlight ? 'link' : 'secondary'} aria-hidden>•</Text>
-      <Text tone={highlight ? 'link' : 'default'} weight={highlight ? 'medium' : 'regular'}>
+      <Text tone="secondary" aria-hidden>•</Text>
+      <Text>
         {label} : <Text as="span" weight="semibold" className="tabular-nums">{value}</Text>
       </Text>
       <Icon name="chevron-right" size="sm" tone="primary" />
