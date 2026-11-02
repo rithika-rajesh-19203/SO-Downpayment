@@ -384,23 +384,32 @@ function InvoiceSummary({ invoice, onApprove }: { invoice: Invoice; onApprove: (
               says when. `info` while it is held; `success` once it is applied. */}
           {pending > 0 ? (
             <Banner tone="info">
-              <Stack gap={1}>
-                <Text tone="inherit" weight="medium">
-                  Sales Order Advance ({invoice.order}) :{' '}
-                  <Text as="span" tone="inherit" weight="semibold" className="tabular-nums">{amount.format(pending)}</Text>
-                </Text>
-                <Text size="body-sm" tone="inherit">
+              {/* Three levels inside the banner: the label in the page's own
+                  text colour, the amount larger and in the link blue so it is
+                  the first thing read, and the note quieter in secondary. */}
+              <Stack gap={2}>
+                <Inline gap={3} align="center" wrap>
+                  <Text weight="semibold">Sales Order Advance</Text>
+                  <Text tone="secondary">({invoice.order})</Text>
+                  <Text size="subheading" weight="semibold" tone="link" className="tabular-nums">
+                    {amount.format(pending)}
+                  </Text>
+                </Inline>
+                <Text size="body-sm" tone="secondary">
                   Received on the sales order. It is applied to this invoice automatically when the invoice is approved.
                 </Text>
               </Stack>
             </Banner>
           ) : applied > 0 ? (
             <Banner tone="success">
-              <Text tone="inherit" weight="medium">
-                Sales Order Advance ({invoice.order}) :{' '}
-                <Text as="span" tone="inherit" weight="semibold" className="tabular-nums">{amount.format(applied)}</Text>
-                {' '}applied to this invoice.
-              </Text>
+              <Inline gap={3} align="center" wrap>
+                <Text weight="semibold">Sales Order Advance</Text>
+                <Text tone="secondary">({invoice.order})</Text>
+                <Text size="subheading" weight="semibold" tone="success" className="tabular-nums">
+                  {amount.format(applied)}
+                </Text>
+                <Text tone="secondary">applied to this invoice</Text>
+              </Inline>
             </Banner>
           ) : null}
           {CREDITS.map(([label, value]) => <Credit key={label} label={label} value={value} />)}
