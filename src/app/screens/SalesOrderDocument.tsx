@@ -77,7 +77,12 @@ export function Address({ value }: { value: string[] }) {
  * order that asked for one — they are the reason this order's PDF differs from
  * any other.
  */
-export function OrderTotals({ order, strong }: { order: SalesOrder; strong?: boolean }) {
+export function OrderTotals({ order, strong, balance = true }: {
+  order: SalesOrder;
+  strong?: boolean;
+  /** Off on Books' details page, which leaves what is left to pay to the invoice. */
+  balance?: boolean;
+}) {
   //  Sub Total is AFTER line discounts — each line's amount already has its
   //  discount taken off, so the total and the advance are on what is charged.
   const sub = order.lines.reduce((s, l) => s + lineAmount(l), 0);
@@ -89,7 +94,7 @@ export function OrderTotals({ order, strong }: { order: SalesOrder; strong?: boo
     ...(order.advance ? [
       [`Advance Required${order.advance.type === 'percent' ? ` (${order.advance.value}% from total)` : ''}`, money.format(order.advance.amount)] as [string, string],
       ['Advance Received', `(−) ${money.format(got)}`] as [string, string],
-      ['Balance Due', money.format(Math.max(0, order.total - got)), true] as [string, string, boolean],
+      ...(balance ? [['Balance Due', money.format(Math.max(0, order.total - got)), true] as [string, string, boolean]] : []),
     ] : []),
   ];
   return (
@@ -132,7 +137,7 @@ export function OrderTotals({ order, strong }: { order: SalesOrder; strong?: boo
  * - The type is the system's sans, not the serif a print template uses. The
  *   template's typeface is a property of the PDF engine, not of this screen.
  */
-export function OrderPdf({ order }: { order: SalesOrder }) {
+export function OrderPdf({ order, balance = true }: { order: SalesOrder; balance?: boolean }) {
   const customer = customerOf(order);
   return (
     <Surface tone="canvas" pad={12} radius="none">
@@ -194,7 +199,7 @@ export function OrderPdf({ order }: { order: SalesOrder }) {
             rowKey={(r) => r.id}
           />
 
-          <OrderTotals order={order} strong />
+          <OrderTotals order={order} strong balance={balance} />
 
           {order.advance ? (
             <Surface tone="sunken" pad={6} radius="md" border="divider">
